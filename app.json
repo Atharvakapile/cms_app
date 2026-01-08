@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Imperium Client Management",
+    "slug": "imperium-client-management",
+    "version": "1.2.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/logo.png",
+    "scheme": "Imperium",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "usesCleartextTraffic": true,
+      "useNextNotificationsApi": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundImage": "./assets/images/logo.png",
+        "monochromeImage": "./assets/images/logo.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.Imperium"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/logo.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/logo.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "owner": "akapile",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d514f216-1ce0-417b-b2d2-6d86a063af21"
+      }
+    }
+  }
+}
