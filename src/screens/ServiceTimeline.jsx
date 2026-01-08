@@ -39,14 +39,12 @@ export default function ServiceTimeline({ route, navigation }) {
       const timelineData = res.data?.data?.timeline || [];
       const maintenanceData = res.data?.data?.maintenance || [];
 
-      // Sort timeline events by start date
       const sortedTimeline = timelineData.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
       const sortedMaintenance = maintenanceData.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
       setTimeline(sortedTimeline);
       setMaintenance(sortedMaintenance);
       
-      // Start animations after data loads
       if (!refreshing) {
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -97,27 +95,6 @@ export default function ServiceTimeline({ route, navigation }) {
     return { status: 'active', color: '#10b981', label: 'Active' };
   };
 
-  const getOverallServiceStatus = () => {
-    if (timeline.length === 0 && maintenance.length === 0) {
-      return { status: 'no-data', color: '#94a3b8', label: 'No Data' };
-    }
-
-    const allEvents = [...timeline, ...maintenance];
-    const activeEvents = allEvents.filter(event => {
-      const today = new Date();
-      const endDate = new Date(event.end_date);
-      return today <= endDate;
-    });
-
-    const totalEvents = allEvents.length;
-    const activeCount = activeEvents.length;
-    const completedCount = totalEvents - activeCount;
-
-    if (activeCount === totalEvents) return { status: 'all-active', color: '#10b981', label: 'All Active' };
-    if (activeCount === 0) return { status: 'all-completed', color: '#ef4444', label: 'All Completed' };
-    return { status: 'mixed', color: '#f59e0b', label: 'In Progress' };
-  };
-
   const getCurrentActiveTimeline = () => {
     const today = new Date();
     return timeline.find(item => {
@@ -132,7 +109,7 @@ export default function ServiceTimeline({ route, navigation }) {
     return maintenance.find(item => today <= new Date(item.end_date));
   };
 
-  const filterEvents = (events, type) => {
+  const filterEvents = (events) => {
     const today = new Date();
     
     switch (activeFilter) {
@@ -145,47 +122,47 @@ export default function ServiceTimeline({ route, navigation }) {
     }
   };
 
-  const filteredTimeline = filterEvents(timeline, 'timeline');
-  const filteredMaintenance = filterEvents(maintenance, 'maintenance');
-
-  const getAllEvents = () => {
-    const allEvents = [
-      ...timeline.map(item => ({
-        ...item,
-        type: 'timeline',
-        status: getTimelineStatus(item),
-        icon: getTimelineIcon(item.timeline_type),
-      })),
-      ...maintenance.map(item => ({
-        ...item,
-        type: 'maintenance',
-        status: getMaintenanceStatus(item),
-        icon: 'construct-outline',
-        title: `Maintenance Extension (${item.months_added} months)`,
-      })),
-    ];
-
-    // Sort by end date, most recent first
-    return allEvents.sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
-  };
+  const filteredTimeline = filterEvents(timeline);
+  const filteredMaintenance = filterEvents(maintenance);
 
   const getTimelineIcon = (type) => {
     const lowerType = type?.toLowerCase() || '';
-    if (lowerType.includes('development') || lowerType.includes('build')) return 'code-working-outline';
-    if (lowerType.includes('design') || lowerType.includes('ui')) return 'color-palette-outline';
-    if (lowerType.includes('testing') || lowerType.includes('qa')) return 'checkmark-circle-outline';
-    if (lowerType.includes('deploy') || lowerType.includes('launch')) return 'rocket-outline';
-    if (lowerType.includes('support') || lowerType.includes('maintenance')) return 'construct-outline';
-    return 'time-outline';
+    if (lowerType.includes('development') || lowerType.includes('build')) return 'code-working';
+    if (lowerType.includes('design') || lowerType.includes('ui')) return 'color-palette';
+    if (lowerType.includes('testing') || lowerType.includes('qa')) return 'checkmark-done';
+    if (lowerType.includes('deploy') || lowerType.includes('launch')) return 'rocket';
+    if (lowerType.includes('support') || lowerType.includes('maintenance')) return 'construct';
+    return 'time';
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+
+  const getDuration = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffMs = endDate - startDate;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 30) return `${diffDays}d`;
+    return `${Math.floor(diffDays / 30)}m`;
+  };
+
+  const getProgressPercentage = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const today = new Date();
+    
+    if (today <= startDate) return 0;
+    if (today >= endDate) return 100;
+    
+    const totalDuration = endDate - startDate;
+    const elapsedDuration = today - startDate;
+    return Math.floor((elapsedDuration / totalDuration) * 100);
   };
 
   /* ===== RENDER FUNCTIONS ===== */
@@ -194,7 +171,7 @@ export default function ServiceTimeline({ route, navigation }) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>Service Timeline</Text>
+          <Text style={styles.pageTitle}>Timeline</Text>
           <Text style={styles.pageSubtitle}>Loading timeline...</Text>
         </View>
         <View style={styles.loader}>
@@ -205,11 +182,6 @@ export default function ServiceTimeline({ route, navigation }) {
     );
   }
 
-  const allEvents = getAllEvents();
-  const totalEvents = timeline.length + maintenance.length;
-  const activeTimelineCount = timeline.filter(item => getTimelineStatus(item).status === 'active').length;
-  const activeMaintenanceCount = maintenance.filter(item => getMaintenanceStatus(item).status === 'active').length;
-  const overallStatus = getOverallServiceStatus();
   const currentActiveTimeline = getCurrentActiveTimeline();
   const currentActiveMaintenance = getCurrentActiveMaintenance();
 
@@ -217,9 +189,9 @@ export default function ServiceTimeline({ route, navigation }) {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* ===== PAGE HEADER ===== */}
       <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Service Timeline</Text>
+        <Text style={styles.pageTitle}>Timeline</Text>
         <Text style={styles.pageSubtitle}>
-          Complete service history and maintenance records
+          Service phases and maintenance records
         </Text>
       </View>
 
@@ -244,86 +216,48 @@ export default function ServiceTimeline({ route, navigation }) {
             },
           ]}
         >
-          {/* ===== SERVICE STATUS OVERVIEW ===== */}
-          <View style={styles.overviewCard}>
-            <View style={styles.overviewHeader}>
-              <View style={[styles.overviewIcon, { backgroundColor: `${overallStatus.color}15` }]}>
-                <Ionicons name="timer-outline" size={28} color={overallStatus.color} />
+          {/* ===== SIMPLIFIED KPIs ===== */}
+          <View style={styles.kpiCard}>
+            <View style={styles.kpiHeader}>
+              <View style={styles.kpiIcon}>
+                <Ionicons name="time-outline" size={22} color="#3b82f6" />
               </View>
-              <View style={styles.overviewContent}>
-                <Text style={styles.overviewTitle}>Service Status</Text>
-                <Text style={[styles.overviewSubtitle, { color: overallStatus.color }]}>
-                  {overallStatus.label}
+              <View style={styles.kpiTitleContainer}>
+                <Text style={styles.kpiTitle}>Overview</Text>
+                <Text style={styles.kpiSubtitle}>
+                  {timeline.length + maintenance.length} total events
                 </Text>
               </View>
             </View>
 
-            <View style={styles.overviewStats}>
-              <View style={styles.overviewStatItem}>
-                <View style={styles.overviewStatIcon}>
-                  <Ionicons name="time-outline" size={20} color="#3b82f6" />
+            <View style={styles.kpiStats}>
+              <View style={styles.kpiStat}>
+                <View style={[styles.statIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                  <Ionicons name="time-outline" size={18} color="#3b82f6" />
                 </View>
-                <Text style={styles.overviewStatValue}>{timeline.length}</Text>
-                <Text style={styles.overviewStatLabel}>Timeline Events</Text>
+                <Text style={styles.statValue}>{timeline.length}</Text>
+                <Text style={styles.statLabel}>Timeline</Text>
               </View>
-              <View style={styles.overviewStatItem}>
-                <View style={styles.overviewStatIcon}>
-                  <Ionicons name="construct-outline" size={20} color="#10b981" />
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.kpiStat}>
+                <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                  <Ionicons name="construct-outline" size={18} color="#10b981" />
                 </View>
-                <Text style={styles.overviewStatValue}>{maintenance.length}</Text>
-                <Text style={styles.overviewStatLabel}>Maintenance</Text>
-              </View>
-              <View style={styles.overviewStatItem}>
-                <View style={styles.overviewStatIcon}>
-                  <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                </View>
-                <Text style={styles.overviewStatValue}>{activeTimelineCount + activeMaintenanceCount}</Text>
-                <Text style={styles.overviewStatLabel}>Active</Text>
-              </View>
-              <View style={styles.overviewStatItem}>
-                <View style={styles.overviewStatIcon}>
-                  <Ionicons name="calendar-outline" size={20} color="#8b5cf6" />
-                </View>
-                <Text style={styles.overviewStatValue}>{totalEvents}</Text>
-                <Text style={styles.overviewStatLabel}>Total Events</Text>
+                <Text style={styles.statValue}>{maintenance.length}</Text>
+                <Text style={styles.statLabel}>Maintenance</Text>
               </View>
             </View>
-
-            {/* ===== CURRENT ACTIVE STATUS ===== */}
+            
             {currentActiveTimeline && (
-              <View style={styles.currentActiveCard}>
-                <View style={styles.currentActiveHeader}>
-                  <Ionicons name="flash-outline" size={20} color="#f59e0b" />
-                  <Text style={styles.currentActiveTitle}>Current Active Timeline</Text>
-                </View>
-                <View style={styles.currentActiveContent}>
-                  <Text style={styles.currentActiveText}>
+              <View style={styles.currentStatus}>
+                <View style={[styles.statusIndicator, { backgroundColor: '#3b82f6' }]} />
+                <View style={styles.currentStatusContent}>
+                  <Text style={styles.currentStatusTitle}>Currently Active</Text>
+                  <Text style={styles.currentStatusText}>
                     {currentActiveTimeline.timeline_type}
                   </Text>
-                  <View style={styles.currentActiveDates}>
-                    <Text style={styles.currentActiveDate}>
-                      {formatDetailedDate(currentActiveTimeline.start_date)} - {formatDetailedDate(currentActiveTimeline.end_date)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {currentActiveMaintenance && (
-              <View style={[styles.currentActiveCard, { backgroundColor: 'rgba(16, 185, 129, 0.05)' }]}>
-                <View style={styles.currentActiveHeader}>
-                  <Ionicons name="construct-outline" size={20} color="#10b981" />
-                  <Text style={styles.currentActiveTitle}>Active Maintenance</Text>
-                </View>
-                <View style={styles.currentActiveContent}>
-                  <Text style={styles.currentActiveText}>
-                    Extended by {currentActiveMaintenance.months_added} months
-                  </Text>
-                  <View style={styles.currentActiveDates}>
-                    <Text style={styles.currentActiveDate}>
-                      Valid until {formatDetailedDate(currentActiveMaintenance.end_date)}
-                    </Text>
-                  </View>
                 </View>
               </View>
             )}
@@ -335,170 +269,88 @@ export default function ServiceTimeline({ route, navigation }) {
               label="All Events" 
               active={activeFilter === 'all'} 
               onPress={() => setActiveFilter('all')}
-              count={totalEvents}
+              count={timeline.length + maintenance.length}
             />
             <FilterButton 
               label="Active" 
               active={activeFilter === 'active'} 
               onPress={() => setActiveFilter('active')}
-              count={activeTimelineCount + activeMaintenanceCount}
+              count={timeline.filter(item => getTimelineStatus(item).status === 'active').length + 
+                     maintenance.filter(item => getMaintenanceStatus(item).status === 'active').length}
             />
             <FilterButton 
               label="Completed" 
               active={activeFilter === 'completed'} 
               onPress={() => setActiveFilter('completed')}
-              count={totalEvents - (activeTimelineCount + activeMaintenanceCount)}
+              count={timeline.filter(item => getTimelineStatus(item).status === 'completed' || getTimelineStatus(item).status === 'upcoming').length + 
+                     maintenance.filter(item => getMaintenanceStatus(item).status === 'expired').length}
             />
           </View>
 
-          {/* ===== TIMELINE SECTION ===== */}
-          <View style={styles.sectionCard}>
+          {/* ===== EVENTS LIST ===== */}
+          <View style={styles.eventsSection}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIcon}>
-                <Ionicons name="time-outline" size={24} color="#3b82f6" />
-              </View>
-              <View style={styles.sectionContent}>
-                <Text style={styles.sectionTitle}>Timeline Events</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Development phases and milestones
-                </Text>
-              </View>
-              <View style={styles.sectionBadge}>
-                <Text style={styles.sectionBadgeText}>
-                  {filteredTimeline.length} of {timeline.length}
-                </Text>
-              </View>
-            </View>
-
-            {filteredTimeline.length === 0 ? (
-              <View style={styles.emptySection}>
-                <Ionicons name="time-outline" size={48} color="#475569" />
-                <Text style={styles.emptySectionTitle}>
-                  {activeFilter === 'all' ? 'No Timeline Events' : 
-                   activeFilter === 'active' ? 'No Active Timeline' : 
-                   'No Completed Timeline'}
-                </Text>
-                <Text style={styles.emptySectionText}>
-                  {activeFilter === 'all' ? 
-                    'Timeline events will appear here as service progresses' :
-                    activeFilter === 'active' ?
-                    'No active timeline events found' :
-                    'No completed timeline events found'
-                  }
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.timelineList}>
-                {filteredTimeline.map((item, index) => (
-                  <TimelineCard
-                    key={`timeline-${item.id}`}
-                    item={item}
-                    index={index}
-                    isLast={index === filteredTimeline.length - 1}
-                    status={getTimelineStatus(item)}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* ===== MAINTENANCE SECTION ===== */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIcon}>
-                <Ionicons name="construct-outline" size={24} color="#10b981" />
-              </View>
-              <View style={styles.sectionContent}>
-                <Text style={styles.sectionTitle}>Maintenance History</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Service extensions and support periods
-                </Text>
-              </View>
-              <View style={styles.sectionBadge}>
-                <Text style={styles.sectionBadgeText}>
-                  {filteredMaintenance.length} of {maintenance.length}
-                </Text>
-              </View>
-            </View>
-
-            {filteredMaintenance.length === 0 ? (
-              <View style={styles.emptySection}>
-                <Ionicons name="construct-outline" size={48} color="#475569" />
-                <Text style={styles.emptySectionTitle}>
-                  {activeFilter === 'all' ? 'No Maintenance Records' : 
-                   activeFilter === 'active' ? 'No Active Maintenance' : 
-                   'No Expired Maintenance'}
-                </Text>
-                <Text style={styles.emptySectionText}>
-                  {activeFilter === 'all' ? 
-                    'Maintenance records will appear here when service is extended' :
-                    activeFilter === 'active' ?
-                    'No active maintenance records found' :
-                    'No expired maintenance records found'
-                  }
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.maintenanceList}>
-                {filteredMaintenance.map((item, index) => (
-                  <MaintenanceCard
-                    key={`maintenance-${item.id}`}
-                    item={item}
-                    index={index}
-                    isLast={index === filteredMaintenance.length - 1}
-                    status={getMaintenanceStatus(item)}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-
-          {/* ===== ALL EVENTS TIMELINE ===== */}
-          {allEvents.length > 0 && (
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIcon}>
-                  <Ionicons name="list-outline" size={24} color="#8b5cf6" />
-                </View>
-                <View style={styles.sectionContent}>
-                  <Text style={styles.sectionTitle}>All Events Timeline</Text>
-                  <Text style={styles.sectionSubtitle}>
-                    Chronological view of all service events
-                  </Text>
-                </View>
-                <View style={styles.sectionBadge}>
-                  <Text style={styles.sectionBadgeText}>
-                    {allEvents.length} events
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.combinedTimeline}>
-                {allEvents.map((event, index) => (
-                  <EventCard
-                    key={`${event.type}-${event.id}`}
-                    event={event}
-                    index={index}
-                    isLast={index === allEvents.length - 1}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* ===== TIMELINE INFO CARD ===== */}
-          <View style={styles.infoCard}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="information-circle-outline" size={24} color="#f59e0b" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>About Service Timeline</Text>
-              <Text style={styles.infoText}>
-                Track all service events, milestones, and maintenance records. 
-                Active events are shown in blue, completed in green, and expired maintenance in red.
+              <Text style={styles.sectionTitle}>
+                {activeFilter === 'all' ? 'All Events' : 
+                 activeFilter === 'active' ? 'Active Events' : 'Completed Events'}
+              </Text>
+              <Text style={styles.sectionSubtitle}>
+                Showing {filteredTimeline.length + filteredMaintenance.length} events
               </Text>
             </View>
+
+            {(filteredTimeline.length === 0 && filteredMaintenance.length === 0) ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="time-outline" size={48} color="#475569" />
+                <Text style={styles.emptyTitle}>
+                  No {activeFilter === 'all' ? '' : activeFilter} events found
+                </Text>
+                <Text style={styles.emptyText}>
+                  {activeFilter === 'all' 
+                    ? 'Service events will appear here as service progresses'
+                    : activeFilter === 'active'
+                    ? 'No active events at the moment'
+                    : 'No completed events yet'
+                  }
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.eventsList}>
+                {/* Timeline Events */}
+                {filteredTimeline.map((item, index) => (
+                  <EventItem
+                    key={`timeline-${item.id}`}
+                    item={item}
+                    type="timeline"
+                    status={getTimelineStatus(item)}
+                    isLast={index === filteredTimeline.length - 1 && filteredMaintenance.length === 0}
+                  />
+                ))}
+                
+                {/* Maintenance Events */}
+                {filteredMaintenance.map((item, index) => (
+                  <EventItem
+                    key={`maintenance-${item.id}`}
+                    item={item}
+                    type="maintenance"
+                    status={getMaintenanceStatus(item)}
+                    isLast={index === filteredMaintenance.length - 1}
+                  />
+                ))}
+              </View>
+            )}
           </View>
+
+          {/* ===== FOOTER NOTE ===== */}
+          <View style={styles.footerNote}>
+            <Ionicons name="information-circle-outline" size={18} color="#f59e0b" />
+            <Text style={styles.footerText}>
+              Active events show in blue, completed in green. Use filters to view specific event types.
+            </Text>
+          </View>
+
+          {/* ===== BOTTOM SPACING ===== */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -523,163 +375,52 @@ const FilterButton = ({ label, active, onPress, count }) => (
   </TouchableOpacity>
 );
 
-const TimelineCard = ({ item, index, isLast, status }) => {
-  const duration = getDuration(item.start_date, item.end_date);
-  const progress = getProgressPercentage(item.start_date, item.end_date);
+const EventItem = ({ item, type, status, isLast }) => {
+  const isTimeline = type === 'timeline';
+  const iconName = isTimeline ? getTimelineIcon(item.timeline_type) : 'construct';
   
+  const getItemTitle = () => {
+    if (isTimeline) return item.timeline_type;
+    return `Maintenance +${item.months_added}m`;
+  };
+
+  const getItemDateRange = () => {
+    const start = formatDate(item.start_date);
+    const end = formatDate(item.end_date);
+    return `${start} - ${end}`;
+  };
+
+  const getDurationText = () => {
+    if (isTimeline) {
+      const duration = getDuration(item.start_date, item.end_date);
+      const progress = getProgressPercentage(item.start_date, item.end_date);
+      if (status.status === 'active' || status.status === 'upcoming') {
+        return `${duration} • ${progress}% complete`;
+      }
+      return duration;
+    }
+    return `Extended by ${item.months_added} months`;
+  };
+
   return (
-    <View style={[styles.timelineCard, isLast && styles.timelineCardLast]}>
-      <View style={styles.cardHeader}>
-        <View style={[styles.cardIcon, { backgroundColor: `${status.color}15` }]}>
-          <Ionicons 
-            name={getTimelineIcon(item.timeline_type)} 
-            size={20} 
-            color={status.color} 
-          />
+    <View style={[styles.eventItem, !isLast && styles.eventItemBorder]}>
+      <View style={styles.eventLeft}>
+        <View style={[styles.eventIcon, { backgroundColor: `${status.color}15` }]}>
+          <Ionicons name={iconName} size={18} color={status.color} />
         </View>
-        <View style={styles.cardTitleContainer}>
-          <Text style={styles.cardTitle}>{item.timeline_type}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: `${status.color}15` }]}>
-            <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-            <Text style={[styles.statusText, { color: status.color }]}>
-              {status.label}
+        <View style={styles.eventContent}>
+          <View style={styles.eventHeader}>
+            <Text style={styles.eventTitle} numberOfLines={1}>
+              {getItemTitle()}
             </Text>
+            <View style={[styles.eventStatus, { backgroundColor: `${status.color}15` }]}>
+              <Text style={[styles.eventStatusText, { color: status.color }]}>
+                {status.label}
+              </Text>
+            </View>
           </View>
-        </View>
-      </View>
-
-      <View style={styles.cardDates}>
-        <View style={styles.dateItem}>
-          <Ionicons name="play-outline" size={14} color="#94a3b8" />
-          <Text style={styles.dateLabel}>Start</Text>
-          <Text style={styles.dateValue}>
-            {formatDetailedDate(item.start_date)}
-          </Text>
-        </View>
-        <View style={styles.dateArrow}>
-          <Ionicons name="arrow-forward" size={16} color="#64748b" />
-        </View>
-        <View style={styles.dateItem}>
-          <Ionicons name="flag-outline" size={14} color="#94a3b8" />
-          <Text style={styles.dateLabel}>End</Text>
-          <Text style={styles.dateValue}>
-            {formatDetailedDate(item.end_date)}
-          </Text>
-        </View>
-      </View>
-
-      {(status.status === 'active' || status.status === 'upcoming') && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>{duration} duration</Text>
-            <Text style={styles.progressPercentage}>{progress}%</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill,
-                { 
-                  width: `${progress}%`,
-                  backgroundColor: status.color
-                }
-              ]} 
-            />
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const MaintenanceCard = ({ item, index, isLast, status }) => {
-  return (
-    <View style={[styles.maintenanceCard, isLast && styles.maintenanceCardLast]}>
-      <View style={styles.cardHeader}>
-        <View style={[styles.cardIcon, { backgroundColor: `${status.color}15` }]}>
-          <Ionicons name="construct-outline" size={20} color={status.color} />
-        </View>
-        <View style={styles.cardTitleContainer}>
-          <Text style={styles.cardTitle}>Maintenance Extension</Text>
-          <View style={[styles.statusBadge, { backgroundColor: `${status.color}15` }]}>
-            <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-            <Text style={[styles.statusText, { color: status.color }]}>
-              {status.label}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.cardDates}>
-        <View style={styles.dateItem}>
-          <Ionicons name="calendar-outline" size={14} color="#94a3b8" />
-          <Text style={styles.dateLabel}>Extended From</Text>
-          <Text style={styles.dateValue}>
-            {formatDetailedDate(item.start_date)}
-          </Text>
-        </View>
-        <View style={styles.dateArrow}>
-          <Ionicons name="arrow-forward" size={16} color="#64748b" />
-        </View>
-        <View style={styles.dateItem}>
-          <Ionicons name="calendar-outline" size={14} color="#94a3b8" />
-          <Text style={styles.dateLabel}>Extended To</Text>
-          <Text style={styles.dateValue}>
-            {formatDetailedDate(item.end_date)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.extensionInfo}>
-        <View style={styles.extensionItem}>
-          <Ionicons name="time-outline" size={14} color="#10b981" />
-          <Text style={styles.extensionLabel}>Extension Period</Text>
-          <Text style={styles.extensionValue}>{item.months_added} months</Text>
-        </View>
-        <View style={styles.extensionItem}>
-          <Ionicons name="card-outline" size={14} color="#8b5cf6" />
-          <Text style={styles.extensionLabel}>Amount Paid</Text>
-          <Text style={styles.extensionValue}>
-            {item.amount_paid ? formatCurrency(item.amount_paid) : 'N/A'}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-};
-
-const EventCard = ({ event, index, isLast }) => {
-  const isTimeline = event.type === 'timeline';
-  const iconName = isTimeline ? getTimelineIcon(event.timeline_type) : 'construct-outline';
-  
-  return (
-    <View style={styles.eventCard}>
-      <View style={styles.eventTimeline}>
-        <View style={[styles.eventDot, { backgroundColor: event.status.color }]} />
-        {!isLast && <View style={styles.eventConnector} />}
-      </View>
-      <View style={styles.eventContent}>
-        <View style={styles.eventHeader}>
-          <View style={[styles.eventIcon, { backgroundColor: `${event.status.color}15` }]}>
-            <Ionicons name={iconName} size={16} color={event.status.color} />
-          </View>
-          <View style={styles.eventInfo}>
-            <Text style={styles.eventTitle}>
-              {isTimeline ? event.timeline_type : `Maintenance (${event.months_added} months)`}
-            </Text>
-            <Text style={styles.eventSubtitle}>
-              {event.type === 'timeline' ? 'Timeline Event' : 'Maintenance'}
-            </Text>
-          </View>
-          <View style={[styles.eventStatus, { backgroundColor: `${event.status.color}15` }]}>
-            <Text style={[styles.eventStatusText, { color: event.status.color }]}>
-              {event.status.label}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.eventDates}>
-          <Text style={styles.eventDatesText}>
-            {formatDetailedDate(event.start_date)} - {formatDetailedDate(event.end_date)}
-          </Text>
+          <Text style={styles.eventDates}>{getItemDateRange()}</Text>
+          <Text style={styles.eventDuration}>{getDurationText()}</Text>
         </View>
       </View>
     </View>
@@ -690,19 +431,18 @@ const EventCard = ({ event, index, isLast }) => {
 
 const getTimelineIcon = (type) => {
   const lowerType = type?.toLowerCase() || '';
-  if (lowerType.includes('development') || lowerType.includes('build')) return 'code-working-outline';
-  if (lowerType.includes('design') || lowerType.includes('ui')) return 'color-palette-outline';
-  if (lowerType.includes('testing') || lowerType.includes('qa')) return 'checkmark-circle-outline';
-  if (lowerType.includes('deploy') || lowerType.includes('launch')) return 'rocket-outline';
-  if (lowerType.includes('support') || lowerType.includes('maintenance')) return 'construct-outline';
-  return 'time-outline';
+  if (lowerType.includes('development') || lowerType.includes('build')) return 'code-working';
+  if (lowerType.includes('design') || lowerType.includes('ui')) return 'color-palette';
+  if (lowerType.includes('testing') || lowerType.includes('qa')) return 'checkmark-done';
+  if (lowerType.includes('deploy') || lowerType.includes('launch')) return 'rocket';
+  if (lowerType.includes('support') || lowerType.includes('maintenance')) return 'construct';
+  return 'time';
 };
 
-const formatDetailedDate = (date) => {
+const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
   });
 };
 
@@ -712,9 +452,8 @@ const getDuration = (start, end) => {
   const diffMs = endDate - startDate;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   
-  if (diffDays < 30) return `${diffDays} days`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months`;
-  return `${Math.floor(diffDays / 365)} years`;
+  if (diffDays < 30) return `${diffDays}d`;
+  return `${Math.floor(diffDays / 30)}m`;
 };
 
 const getProgressPercentage = (start, end) => {
@@ -747,14 +486,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1e293b',
   },
   pageTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     color: '#f8fafc',
-    letterSpacing: -0.8,
     marginBottom: 4,
   },
   pageSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#94a3b8',
     fontWeight: '500',
   },
@@ -772,134 +510,123 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20, // Reduced from 40 since we added bottomSpacing
   },
   content: {
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
   },
-  // Overview Card
-  overviewCard: {
+  // KPI Card
+  kpiCard: {
     backgroundColor: '#1e293b',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  overviewHeader: {
+  kpiHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  overviewIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  kpiIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-    borderWidth: 1,
   },
-  overviewContent: {
+  kpiTitleContainer: {
     flex: 1,
   },
-  overviewTitle: {
-    fontSize: 20,
+  kpiTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
-    letterSpacing: -0.3,
   },
-  overviewSubtitle: {
-    fontSize: 15,
-    fontWeight: '600',
+  kpiSubtitle: {
+    fontSize: 14,
+    color: '#94a3b8',
+    fontWeight: '500',
   },
-  overviewStats: {
+  kpiStats: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
-  },
-  overviewStatItem: {
-    flex: 1,
-    minWidth: '22%',
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  overviewStatIcon: {
+  kpiStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1e293b',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  overviewStatValue: {
-    fontSize: 20,
+  statValue: {
+    fontSize: 25,
     fontWeight: '800',
     color: '#f8fafc',
     marginBottom: 4,
   },
-  overviewStatLabel: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  currentActiveCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
-    marginBottom: 12,
-  },
-  currentActiveHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  currentActiveTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#f8fafc',
-    marginLeft: 8,
-  },
-  currentActiveContent: {
-    paddingLeft: 28,
-  },
-  currentActiveText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 4,
-  },
-  currentActiveDates: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  currentActiveDate: {
+  statLabel: {
     fontSize: 13,
     color: '#94a3b8',
     fontWeight: '500',
+  },
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#334155',
+    marginHorizontal: 20,
+  },
+  currentStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 12,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  currentStatusContent: {
+    flex: 1,
+  },
+  currentStatusTitle: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  currentStatusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f8fafc',
   },
   // Filter Buttons
   filterContainer: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 8,
     marginBottom: 20,
     borderWidth: 1,
@@ -912,7 +639,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    gap: 6,
   },
   filterButtonActive: {
     backgroundColor: '#0f172a',
@@ -921,16 +649,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#94a3b8',
-    marginRight: 6,
   },
   filterTextActive: {
-    color: '#3b82f6',
+    color: '#f8fafc',
   },
   filterBadge: {
     backgroundColor: '#334155',
-    borderRadius: 12,
+    borderRadius: 10,
     minWidth: 24,
-    height: 24,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
@@ -946,335 +673,128 @@ const styles = StyleSheet.create({
   filterBadgeTextActive: {
     color: '#ffffff',
   },
-  // Section Card
-  sectionCard: {
+  // Events Section
+  eventsSection: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
+    marginBottom: 20,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  sectionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#0f172a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  sectionContent: {
-    flex: 1,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
-    letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 14,
     color: '#94a3b8',
     fontWeight: '500',
   },
-  sectionBadge: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  sectionBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#cbd5e1',
-  },
-  emptySection: {
+  emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
+    paddingHorizontal: 20,
   },
-  emptySectionTitle: {
-    fontSize: 20,
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 8,
   },
-  emptySectionText: {
-    fontSize: 15,
+  emptyText: {
+    fontSize: 14,
     color: '#94a3b8',
     textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: '80%',
+    lineHeight: 20,
   },
-  timelineList: {
+  // Events List
+  eventsList: {
     gap: 12,
   },
-  maintenanceList: {
-    gap: 12,
-  },
-  // Timeline Card
-  timelineCard: {
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  timelineCardLast: {
-    marginBottom: 0,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  cardTitleContainer: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 6,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardDates: {
+  eventItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
+    paddingVertical: 16,
   },
-  dateItem: {
+  eventItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#2d3748',
+  },
+  eventLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    alignItems: 'center',
-  },
-  dateLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 4,
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  dateValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#f8fafc',
-  },
-  dateArrow: {
-    paddingHorizontal: 8,
-  },
-  progressContainer: {
-    marginTop: 8,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  progressLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    fontWeight: '500',
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#3b82f6',
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#1e293b',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  // Maintenance Card
-  maintenanceCard: {
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  maintenanceCardLast: {
-    marginBottom: 0,
-  },
-  extensionInfo: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  extensionItem: {
-    flex: 1,
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  extensionLabel: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 4,
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  extensionValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#f8fafc',
-  },
-  // Combined Timeline
-  combinedTimeline: {
-    gap: 8,
-  },
-  eventCard: {
-    flexDirection: 'row',
-  },
-  eventTimeline: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 24,
-  },
-  eventDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  eventConnector: {
-    width: 2,
-    height: '100%',
-    backgroundColor: '#334155',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  eventContent: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 8,
-  },
-  eventHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
   },
   eventIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  eventInfo: {
+  eventContent: {
     flex: 1,
   },
-  eventTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 2,
+  eventHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  eventSubtitle: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '500',
+  eventTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#f8fafc',
+    flex: 1,
+    marginRight: 8,
   },
   eventStatus: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   eventStatusText: {
     fontSize: 11,
     fontWeight: '600',
   },
   eventDates: {
-    paddingLeft: 44,
-  },
-  eventDatesText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#94a3b8',
     fontWeight: '500',
+    marginBottom: 2,
   },
-  // Info Card
-  infoCard: {
+  eventDuration: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  // Footer Note
+  footerNote: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#2d3748',
-    alignItems: 'center',
+    gap: 12,
   },
-  infoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  infoContent: {
+  footerText: {
     flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 8,
-  },
-  infoText: {
     fontSize: 14,
     color: '#94a3b8',
     lineHeight: 20,
+  },
+  // Bottom Spacing
+  bottomSpacing: {
+    height: 100,
   },
 });

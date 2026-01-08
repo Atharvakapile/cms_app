@@ -11,19 +11,17 @@
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "usesCleartextTraffic": true,
-      "useNextNotificationsApi": true,
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo.png",
-        "backgroundImage": "./assets/images/logo.png",
-        "monochromeImage": "./assets/images/logo.png"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Imperium"
-    },
+"android": {
+  "usesCleartextTraffic": true,
+  "useNextNotificationsApi": true,
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/images/logo.png",
+    "backgroundColor": "#FFFFFF"
+  },
+  "edgeToEdgeEnabled": true,
+  "predictiveBackGestureEnabled": false,
+  "package": "com.anonymous.Imperium"
+},
     "web": {
       "output": "static",
       "favicon": "./assets/images/logo.png"

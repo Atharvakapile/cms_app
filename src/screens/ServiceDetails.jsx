@@ -636,22 +636,10 @@ export default function ServiceDetails({ route, navigation }) {
             </View>
           </View>
 
-          {/* ===== NEED HELP CARD ===== */}
-          <TouchableOpacity 
-            style={styles.helpCard}
-            onPress={() => navigation.navigate('Contact')}
-          >
-            <View style={styles.helpIcon}>
-              <Ionicons name="help-circle-outline" size={24} color="#3b82f6" />
-            </View>
-            <View style={styles.helpContent}>
-              <Text style={styles.helpTitle}>Need Service Support?</Text>
-              <Text style={styles.helpText}>
-                Contact our support team for any service-related queries
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
-          </TouchableOpacity>
+          
+          
+          {/* ===== BOTTOM SPACING ===== */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -786,7 +774,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
@@ -1141,16 +1129,26 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     lineHeight: 20,
   },
-  helpCard: {
+  
+  // Support Section
+  supportContainer: {
+    marginBottom: 20,
+  },
+  supportCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  helpIcon: {
+  supportIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -1159,17 +1157,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  helpContent: {
+  supportContent: {
     flex: 1,
   },
-  helpTitle: {
-    fontSize: 16,
+  supportTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
-  helpText: {
+  supportText: {
     fontSize: 14,
     color: '#94a3b8',
+  },
+  
+  // Bottom Spacing
+  bottomSpacing: {
+    height: 80,
   },
 });

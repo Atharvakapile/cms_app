@@ -136,7 +136,7 @@ export default function Profile() {
             <Text style={styles.mobile}>{profile.mobile}</Text>
           </Animated.View>
 
-          {/* ===== QUICK INFO BADGES ===== */}
+          {/* ===== QUICK INFO BADGES (CENTER ALIGNED) ===== */}
           <View style={styles.badgesContainer}>
             <InfoBadge
               icon="calendar-outline"
@@ -233,8 +233,9 @@ export default function Profile() {
           </View>
 
           
-
           
+          {/* ===== BOTTOM SPACING ===== */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
@@ -442,6 +443,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
+  
+  // Badges Container with center alignment
   badgesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -456,6 +459,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2d3748',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeIcon: {
     width: 36,
@@ -468,17 +472,20 @@ const styles = StyleSheet.create({
   },
   badgeContent: {
     alignItems: 'center',
+    width: '100%',
   },
   badgeLabel: {
     fontSize: 12,
     color: '#94a3b8',
     marginBottom: 4,
     fontWeight: '500',
+    textAlign: 'center',
   },
   badgeValue: {
     fontSize: 14,
     fontWeight: '700',
     color: '#f8fafc',
+    textAlign: 'center',
   },
   badgeValueActive: {
     color: '#10b981',
@@ -486,6 +493,7 @@ const styles = StyleSheet.create({
   badgeValueInactive: {
     color: '#f59e0b',
   },
+  
   detailCard: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
@@ -571,6 +579,8 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     lineHeight: 20,
   },
+  
+  // Stats Grid with center alignment
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -584,6 +594,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#334155',
+    justifyContent: 'center',
   },
   statIcon: {
     width: 40,
@@ -599,19 +610,25 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     marginBottom: 4,
     fontWeight: '500',
+    textAlign: 'center',
   },
   statValue: {
     fontSize: 14,
     fontWeight: '700',
     color: '#f8fafc',
+    textAlign: 'center',
+  },
+  
+  // Support Section with bottom spacing
+  supportContainer: {
+    marginBottom: 20,
   },
   supportCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
   },
@@ -619,7 +636,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -628,40 +645,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   supportTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   supportText: {
     fontSize: 14,
     color: '#94a3b8',
   },
-  supportButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2563eb',
-  },
-  supportButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    fontSize: 13,
-    color: '#64748b',
-    marginBottom: 4,
-  },
-  footerSubtext: {
-    fontSize: 12,
-    color: '#475569',
-    fontWeight: '500',
+  
+  // Bottom spacing for safe area
+  bottomSpacing: {
+    height: 80,
   },
 });

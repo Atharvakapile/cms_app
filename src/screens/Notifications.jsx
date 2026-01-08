@@ -16,12 +16,13 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../api/api';
 
 const { width } = Dimensions.get('window');
-const FILE_BASE_URL = 'http://192.168.1.5:5000';
+const FILE_BASE_URL = 'https://api.imperiummmm.in';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [readIds, setReadIds] = useState(new Set()); // Track read notifications
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -66,6 +67,40 @@ export default function Notifications() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchNotifications();
+  };
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      // Add to local read set
+      setReadIds(prev => new Set(prev).add(notificationId));
+      
+      // Optional: Send API call to mark as read on server
+      // await api.post(`/notifications/${notificationId}/read`);
+      
+      // You can also filter out the read notification from the list
+      // if you want to completely remove it:
+      // setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
+
+  // Mark all as read
+  const markAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    setReadIds(new Set(allIds));
+  };
+
+  // Function to check if notification is read
+  const isNotificationRead = (notificationId) => {
+    return readIds.has(notificationId);
+  };
+
+  // Function to get unread count
+  const getUnreadCount = () => {
+    return notifications.filter(n => !readIds.has(n.id)).length;
   };
 
   // Function to get notification icon based on type
@@ -158,8 +193,20 @@ export default function Notifications() {
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Notifications</Text>
         <Text style={styles.pageSubtitle}>
-          {notifications.length} new {notifications.length === 1 ? 'alert' : 'alerts'}
+          {getUnreadCount()} new {getUnreadCount() === 1 ? 'alert' : 'alerts'}
         </Text>
+        
+        {/* Mark All as Read Button */}
+        {getUnreadCount() > 0 && (
+          <TouchableOpacity 
+            style={styles.markAllButton}
+            onPress={markAllAsRead}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="checkmark-done-outline" size={18} color="#3b82f6" />
+            <Text style={styles.markAllText}>Mark all as read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <FlatList
@@ -175,66 +222,107 @@ export default function Notifications() {
           />
         }
         showsVerticalScrollIndicator={false}
-        renderItem={({ item, index }) => (
-          <Animated.View
-            style={[
-              styles.card,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <View style={styles.iconContainer}>
-                <Ionicons 
-                  name={getNotificationIcon(item.title)} 
-                  size={20} 
-                  color="#3b82f6" 
-                />
+        renderItem={({ item, index }) => {
+          const isRead = isNotificationRead(item.id);
+          
+          return (
+            <Animated.View
+              style={[
+                styles.card,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                  borderColor: isRead ? '#2d3748' : '#3b82f650',
+                  backgroundColor: isRead ? '#1e293b' : 'rgba(59, 130, 246, 0.05)',
+                },
+              ]}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[
+                  styles.iconContainer,
+                  { backgroundColor: isRead ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)' }
+                ]}>
+                  <Ionicons 
+                    name={getNotificationIcon(item.title)} 
+                    size={20} 
+                    color={isRead ? '#3b82f6' : '#3b82f6'} 
+                  />
+                </View>
+                <View style={styles.headerContent}>
+                  <Text style={[
+                    styles.title,
+                    { color: isRead ? '#f8fafc' : '#f8fafc' }
+                  ]}>
+                    {item.title}
+                  </Text>
+                  <View style={styles.timeBadge}>
+                    <Ionicons name="time-outline" size={12} color="#94a3b8" />
+                    <Text style={styles.timeText}>
+                      {formatDate(item.created_at)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[
+                  styles.statusDot,
+                  { 
+                    backgroundColor: isRead ? '#475569' : '#3b82f6',
+                    opacity: isRead ? 0.5 : 1
+                  }
+                ]} />
               </View>
-              <View style={styles.headerContent}>
-                <Text style={styles.title}>{item.title}</Text>
-                <View style={styles.timeBadge}>
-                  <Ionicons name="time-outline" size={12} color="#94a3b8" />
-                  <Text style={styles.timeText}>
-                    {formatDate(item.created_at)}
+
+              <Text style={[
+                styles.description,
+                { color: isRead ? '#cbd5e1' : '#d1d5db' }
+              ]}>
+                {item.description}
+              </Text>
+
+              {item.image && (
+                <Image
+                  source={{
+                    uri: `${FILE_BASE_URL}${item.image}`,
+                  }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+              )}
+
+              <View style={styles.cardFooter}>
+                <View style={styles.footerLeft}>
+                  <Ionicons name="calendar-outline" size={14} color="#94a3b8" />
+                  <Text style={styles.fullDate}>
+                    {new Date(item.created_at).toLocaleDateString('en-IN', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}
                   </Text>
                 </View>
+                
+                {/* Mark as Read Button */}
+                {!isRead && (
+                  <TouchableOpacity 
+                    style={styles.markReadButton}
+                    onPress={() => markAsRead(item.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
+                    <Text style={styles.markReadText}>Mark as read</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {/* Already Read Indicator */}
+                {isRead && (
+                  <View style={styles.readIndicator}>
+                    <Ionicons name="checkmark-done" size={16} color="#10b981" />
+                    <Text style={styles.readText}>Read</Text>
+                  </View>
+                )}
               </View>
-              <View style={[
-                styles.statusDot,
-                { backgroundColor: index < 3 ? '#3b82f6' : '#475569' }
-              ]} />
-            </View>
-
-            <Text style={styles.description}>{item.description}</Text>
-
-            {item.image && (
-              <Image
-                source={{
-                  uri: `${FILE_BASE_URL}${item.image}`,
-                }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            )}
-
-            <View style={styles.cardFooter}>
-              <View style={styles.footerLeft}>
-                <Ionicons name="calendar-outline" size={14} color="#94a3b8" />
-                <Text style={styles.fullDate}>
-                  {new Date(item.created_at).toLocaleDateString('en-IN', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </Text>
-              </View>
-              
-            </View>
-          </Animated.View>
-        )}
+            </Animated.View>
+          );
+        }}
         ListHeaderComponent={
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
@@ -243,22 +331,20 @@ export default function Notifications() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
-                {notifications.filter((_, i) => i < 3).length}
-              </Text>
-              <Text style={styles.statLabel}>Recent</Text>
+              <Text style={styles.statNumber}>{getUnreadCount()}</Text>
+              <Text style={styles.statLabel}>Unread</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
-                {new Date(notifications[0]?.created_at).toLocaleDateString('en-IN', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
+                {notifications.length - getUnreadCount()}
               </Text>
-              <Text style={styles.statLabel}>Latest</Text>
+              <Text style={styles.statLabel}>Read</Text>
             </View>
           </View>
+        }
+        ListFooterComponent={
+          <View style={styles.bottomSpacing} />
         }
       />
     </SafeAreaView>
@@ -280,6 +366,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0f1e',
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
+    position: 'relative',
   },
   pageTitle: {
     fontSize: 32,
@@ -292,6 +379,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94a3b8',
     fontWeight: '500',
+    marginBottom: 8,
+  },
+  markAllButton: {
+    position: 'absolute',
+    right: 24,
+    top: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  markAllText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   loader: {
     flex: 1,
@@ -353,7 +460,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -390,12 +497,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#334155',
   },
   card: {
-    backgroundColor: '#1e293b',
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#2d3748',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -411,7 +516,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -420,7 +524,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#f8fafc',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
@@ -447,10 +550,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   description: {
-    color: '#cbd5e1',
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: item => item.image ? 16 : 0,
+    marginBottom: 16,
   },
   image: {
     width: '100%',
@@ -477,17 +579,39 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '500',
   },
-  moreButton: {
+  markReadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.2)',
   },
-  moreText: {
+  markReadText: {
     color: '#3b82f6',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
+    marginLeft: 6,
+  },
+  readIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  readText: {
+    color: '#10b981',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  bottomSpacing: {
+    height: 80,
   },
 });

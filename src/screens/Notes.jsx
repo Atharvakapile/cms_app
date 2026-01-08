@@ -2,13 +2,15 @@ import { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
-  FlatList,
   ActivityIndicator,
   StyleSheet,
   Animated,
   Dimensions,
   RefreshControl,
   ScrollView,
+  TouchableOpacity,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../api/api';
@@ -22,6 +24,8 @@ export default function Notes({ route }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notes, setNotes] = useState([]);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -33,13 +37,9 @@ export default function Notes({ route }) {
 
   const fetchNotes = async () => {
     try {
-      const res = await api.get(
-        `/notes/client/${serviceId}`
-      );
-
+      const res = await api.get(`/notes/client/${serviceId}`);
       setNotes(res.data?.data || []);
       
-      // Start animations after data loads
       if (!refreshing) {
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -55,10 +55,7 @@ export default function Notes({ route }) {
         ]).start();
       }
     } catch (err) {
-      console.log(
-        'Notes fetch error:',
-        err.response?.data || err.message
-      );
+      console.log('Notes fetch error:', err.response?.data || err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,6 +65,16 @@ export default function Notes({ route }) {
   const onRefresh = () => {
     setRefreshing(true);
     fetchNotes();
+  };
+
+  const openNoteModal = (note) => {
+    setSelectedNote(note);
+    setModalVisible(true);
+  };
+
+  const closeNoteModal = () => {
+    setModalVisible(false);
+    setTimeout(() => setSelectedNote(null), 300);
   };
 
   // Group notes by date
@@ -91,7 +98,15 @@ export default function Notes({ route }) {
 
   const noteGroups = groupNotesByDate(notes);
 
-  /* ================= LOADING ================= */
+  // Calculate KPIs
+  const totalNotes = notes.length;
+  const totalDates = Object.keys(noteGroups).length;
+  const latestNoteDate = notes.length > 0 
+    ? new Date(notes[0].created_at).toLocaleDateString('en-IN', {
+        month: 'short',
+        day: 'numeric',
+      })
+    : '-';
 
   if (loading) {
     return (
@@ -108,15 +123,13 @@ export default function Notes({ route }) {
     );
   }
 
-  /* ================= UI ================= */
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* ===== PAGE HEADER ===== */}
+      {/* Page Header */}
       <View style={styles.pageHeader}>
         <Text style={styles.pageTitle}>Service Notes</Text>
         <Text style={styles.pageSubtitle}>
-          {notes.length} note{notes.length !== 1 ? 's' : ''} recorded
+          {totalNotes} note{totalNotes !== 1 ? 's' : ''} recorded
         </Text>
       </View>
 
@@ -141,44 +154,82 @@ export default function Notes({ route }) {
             },
           ]}
         >
-          {/* ===== NOTES STATS ===== */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#3b82f615' }]}>
-                <Ionicons name="document-text-outline" size={20} color="#3b82f6" />
+          {/* Simplified KPIs */}
+          <View style={styles.kpiCard}>
+            <View style={styles.kpiHeader}>
+              <View style={styles.kpiIcon}>
+                <Ionicons name="document-text-outline" size={24} color="#3b82f6" />
               </View>
-              <Text style={styles.statValue}>{notes.length}</Text>
-              <Text style={styles.statLabel}>Total Notes</Text>
-            </View>
-            <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#10b98115' }]}>
-                <Ionicons name="calendar-outline" size={20} color="#10b981" />
+              <View>
+                <Text style={styles.kpiTitle}>Notes Overview</Text>
+                <Text style={styles.kpiStatus}>
+                  {totalNotes > 0 ? `${totalNotes} notes` : 'No notes yet'}
+                </Text>
               </View>
-              <Text style={styles.statValue}>
-                {Object.keys(noteGroups).length}
-              </Text>
-              <Text style={styles.statLabel}>Dates</Text>
             </View>
-            <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: '#8b5cf615' }]}>
-                <Ionicons name="time-outline" size={20} color="#8b5cf6" />
+
+            {totalNotes > 0 ? (
+              <View style={styles.statsRow}>
+                <StatBox 
+                  icon="document-text-outline"
+                  label="Total"
+                  value={totalNotes}
+                  color="#3b82f6"
+                />
+                <StatBox 
+                  icon="calendar-outline"
+                  label="Dates"
+                  value={totalDates}
+                  color="#10b981"
+                />
+                <StatBox 
+                  icon="time-outline"
+                  label="Latest"
+                  value={latestNoteDate}
+                  color="#8b5cf6"
+                />
               </View>
-              <Text style={styles.statValue}>
-                {notes.length > 0 
-                  ? new Date(notes[0].created_at).toLocaleDateString('en-IN', {
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                  : '-'
-                }
-              </Text>
-              <Text style={styles.statLabel}>Latest</Text>
-            </View>
+            ) : (
+              <View style={styles.emptyKpi}>
+                <Ionicons name="document-text-outline" size={40} color="#64748b" />
+                <Text style={styles.emptyKpiText}>
+                  Notes from the support team will appear here
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* ===== NOTES LIST ===== */}
-          {notes.length === 0 ? (
-            <View style={styles.emptyContainer}>
+          {/* Notes List */}
+          {totalNotes > 0 ? (
+            <View style={styles.listCard}>
+              <View style={styles.listHeader}>
+                <Ionicons name="list-outline" size={20} color="#3b82f6" />
+                <Text style={styles.listTitle}>All Notes</Text>
+                <Text style={styles.listCount}>{totalNotes}</Text>
+              </View>
+
+              <View style={styles.notesList}>
+                {Object.entries(noteGroups).map(([date, dateNotes]) => (
+                  <View key={date} style={styles.dateGroup}>
+                    <View style={styles.dateHeader}>
+                      <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
+                      <Text style={styles.dateTitle}>{date}</Text>
+                      <Text style={styles.dateCount}>{dateNotes.length} notes</Text>
+                    </View>
+                    
+                    {dateNotes.map((note) => (
+                      <NoteCard 
+                        key={note.id}
+                        note={note}
+                        onPress={() => openNoteModal(note)}
+                      />
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
                 <Ionicons name="document-text-outline" size={64} color="#475569" />
               </View>
@@ -186,7 +237,7 @@ export default function Notes({ route }) {
               <Text style={styles.emptyText}>
                 Service notes will appear here once added by the support team.
               </Text>
-              <View style={styles.emptyTips}>
+              <View style={styles.tipsCard}>
                 <Text style={styles.tipsTitle}>What are service notes?</Text>
                 <Text style={styles.tipsText}>
                   • Updates from support team{'\n'}
@@ -195,94 +246,148 @@ export default function Notes({ route }) {
                 </Text>
               </View>
             </View>
-          ) : (
-            <View style={styles.notesContainer}>
-              {Object.entries(noteGroups).map(([date, dateNotes]) => (
-                <View key={date} style={styles.dateSection}>
-                  <View style={styles.dateHeader}>
-                    <Ionicons name="calendar-outline" size={16} color="#94a3b8" />
-                    <Text style={styles.dateTitle}>{date}</Text>
-                    <Text style={styles.dateCount}>{dateNotes.length} notes</Text>
-                  </View>
-                  
-                  {dateNotes.map((item, index) => (
-                    <Animated.View
-                      key={item.id}
-                      style={[
-                        styles.noteCard,
-                        {
-                          opacity: fadeAnim,
-                          transform: [{ translateY: slideAnim }],
-                        },
-                      ]}
-                    >
-                      <View style={styles.noteHeader}>
-                        <View style={styles.noteIcon}>
-                          <Ionicons 
-                            name={getNoteIcon(item.note)} 
-                            size={20} 
-                            color="#3b82f6" 
-                          />
-                        </View>
-                        <View style={styles.noteInfo}>
-                          <Text style={styles.noteTitle}>
-                            {getNoteType(item.note)}
-                          </Text>
-                          <View style={styles.noteMeta}>
-                            <Ionicons name="time-outline" size={12} color="#94a3b8" />
-                            <Text style={styles.noteTime}>
-                              {new Date(item.created_at).toLocaleTimeString('en-IN', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                      
-                      <Text style={styles.noteText}>
-                        {item.note}
-                      </Text>
-
-                      <View style={styles.noteFooter}>
-                        <View style={styles.footerLeft}>
-                          <Ionicons name="person-circle-outline" size={14} color="#94a3b8" />
-                          <Text style={styles.noteAuthor}>
-                            {item.created_by || 'Support Team'}
-                          </Text>
-                        </View>
-                        <View style={styles.footerBadge}>
-                          <Ionicons name="checkmark-circle" size={12} color="#10b981" />
-                          <Text style={styles.footerBadgeText}>Added</Text>
-                        </View>
-                      </View>
-                    </Animated.View>
-                  ))}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* ===== NOTES INFO CARD ===== */}
-          {notes.length > 0 && (
-            <View style={styles.infoCard}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="information-circle-outline" size={24} color="#f59e0b" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>About Service Notes</Text>
-                <Text style={styles.infoText}>
-                  These notes are added by our support team to keep you updated 
-                  about your service progress and important communications.
-                </Text>
-              </View>
-            </View>
           )}
         </Animated.View>
       </ScrollView>
+
+      {/* Note Detail Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeNoteModal}
+      >
+        <TouchableWithoutFeedback onPress={closeNoteModal}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                {selectedNote && (
+                  <>
+                    <View style={styles.modalHeader}>
+                      <View style={styles.modalIcon}>
+                        <Ionicons 
+                          name={getNoteIcon(selectedNote.note)} 
+                          size={24} 
+                          color="#3b82f6" 
+                        />
+                      </View>
+                      <View style={styles.modalTitleContainer}>
+                        <Text style={styles.modalTitle}>
+                          {getNoteType(selectedNote.note)}
+                        </Text>
+                        <View style={styles.modalMeta}>
+                          <Ionicons name="time-outline" size={12} color="#94a3b8" />
+                          <Text style={styles.modalTime}>
+                            {new Date(selectedNote.created_at).toLocaleTimeString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })} • {new Date(selectedNote.created_at).toLocaleDateString('en-IN')}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity onPress={closeNoteModal} style={styles.closeButton}>
+                        <Ionicons name="close" size={24} color="#94a3b8" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                      <Text style={styles.modalNoteText}>
+                        {selectedNote.note}
+                      </Text>
+                    </ScrollView>
+
+                    <View style={styles.modalFooter}>
+                      <View style={styles.footerLeft}>
+                        <Ionicons name="person-circle-outline" size={16} color="#94a3b8" />
+                        <Text style={styles.modalAuthor}>
+                          {selectedNote.created_by || 'Support Team'}
+                        </Text>
+                      </View>
+                      <View style={styles.footerBadge}>
+                        <Ionicons name="checkmark-circle" size={12} color="#10b981" />
+                        <Text style={styles.footerBadgeText}>Added</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+/* ===== REUSABLE COMPONENTS ===== */
+
+const StatBox = ({ icon, label, value, color }) => (
+  <View style={styles.statBox}>
+    <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
+      <Ionicons name={icon} size={20} color={color} />
+    </View>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const NoteCard = ({ note, onPress }) => {
+  const isLongNote = note.note.length > 120;
+  const displayText = isLongNote 
+    ? `${note.note.substring(0, 120)}...` 
+    : note.note;
+
+  return (
+    <TouchableOpacity 
+      style={styles.noteCard}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.noteHeader}>
+        <View style={styles.noteIcon}>
+          <Ionicons 
+            name={getNoteIcon(note.note)} 
+            size={20} 
+            color="#3b82f6" 
+          />
+        </View>
+        <View style={styles.noteInfo}>
+          <Text style={styles.noteTitle}>
+            {getNoteType(note.note)}
+          </Text>
+          <View style={styles.noteMeta}>
+            <Ionicons name="time-outline" size={12} color="#94a3b8" />
+            <Text style={styles.noteTime}>
+              {new Date(note.created_at).toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
+        </View>
+      </View>
+      
+      <Text style={styles.noteText}>
+        {displayText}
+      </Text>
+
+      <View style={styles.noteFooter}>
+        <View style={styles.footerLeft}>
+          <Ionicons name="person-circle-outline" size={14} color="#94a3b8" />
+          <Text style={styles.noteAuthor}>
+            {note.created_by || 'Support Team'}
+          </Text>
+        </View>
+        {isLongNote && (
+          <View style={styles.readMoreBadge}>
+            <Ionicons name="expand-outline" size={12} color="#3b82f6" />
+            <Text style={styles.readMoreText}>View</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 /* ===== HELPER FUNCTIONS ===== */
 
@@ -350,27 +455,55 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 12,
-  },
-  statItem: {
-    flex: 1,
+  
+  // KPI Card
+  kpiCard: {
     backgroundColor: '#1e293b',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
-    alignItems: 'center',
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
+  },
+  kpiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  kpiIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  kpiTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginBottom: 4,
+  },
+  kpiStatus: {
+    fontSize: 14,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statBox: {
+    alignItems: 'center',
+    flex: 1,
   },
   statIcon: {
     width: 44,
@@ -378,85 +511,77 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
     color: '#f8fafc',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#94a3b8',
     fontWeight: '500',
   },
-  emptyContainer: {
+  emptyKpi: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 16,
   },
-  emptyIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#1e293b',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: '#334155',
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 15,
+  emptyKpiText: {
+    fontSize: 14,
     color: '#94a3b8',
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
+    marginTop: 12,
+    lineHeight: 20,
   },
-  emptyTips: {
+  
+  // List Card
+  listCard: {
     backgroundColor: '#1e293b',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    width: '100%',
   },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 12,
-  },
-  tipsText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    lineHeight: 22,
-  },
-  notesContainer: {
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
   },
-  dateSection: {
-    marginBottom: 24,
+  listTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginLeft: 12,
+    flex: 1,
+  },
+  listCount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  notesList: {
+    gap: 16,
+  },
+  dateGroup: {
+    gap: 12,
   },
   dateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
     paddingHorizontal: 4,
   },
   dateTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#f8fafc',
     marginLeft: 8,
     flex: 1,
-    letterSpacing: -0.3,
   },
   dateCount: {
     fontSize: 13,
@@ -468,41 +593,34 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   noteCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
   },
   noteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   noteIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   noteInfo: {
     flex: 1,
   },
   noteTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#f8fafc',
-    marginBottom: 6,
-    letterSpacing: -0.2,
+    marginBottom: 4,
   },
   noteMeta: {
     flexDirection: 'row',
@@ -516,17 +634,14 @@ const styles = StyleSheet.create({
   },
   noteText: {
     color: '#e5e7eb',
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 20,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
   },
   noteFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
   },
   footerLeft: {
     flexDirection: 'row',
@@ -534,6 +649,162 @@ const styles = StyleSheet.create({
   },
   noteAuthor: {
     fontSize: 13,
+    color: '#94a3b8',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  readMoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  readMoreText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#1e293b',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    maxWidth: 300,
+  },
+  tipsCard: {
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2d3748',
+    width: '100%',
+  },
+  tipsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginBottom: 8,
+  },
+  tipsText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    lineHeight: 20,
+  },
+  
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1e293b',
+    borderRadius: 24,
+    width: width * 0.9,
+    maxWidth: 500,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  modalTitleContainer: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginBottom: 6,
+  },
+  modalMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalTime: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+  },
+  modalBody: {
+    padding: 24,
+    maxHeight: 400,
+  },
+  modalNoteText: {
+    color: '#e5e7eb',
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  modalAuthor: {
+    fontSize: 14,
     color: '#94a3b8',
     marginLeft: 6,
     fontWeight: '500',
@@ -553,37 +824,5 @@ const styles = StyleSheet.create({
     color: '#10b981',
     fontWeight: '600',
     marginLeft: 4,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#2d3748',
-    alignItems: 'center',
-  },
-  infoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    lineHeight: 20,
   },
 });

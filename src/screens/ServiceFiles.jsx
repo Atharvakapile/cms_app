@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../api/api';
 
 const { width } = Dimensions.get('window');
-const FILE_BASE_URL = 'http://192.168.1.5:5000';
+const FILE_BASE_URL = 'https://api.imperiummmm.in';
 
 export default function ServiceFiles({ route, navigation }) {
   const { serviceId } = route.params;
@@ -26,7 +26,7 @@ export default function ServiceFiles({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [files, setFiles] = useState([]);
-  const [filter, setFilter] = useState('all'); // 'all', 'images', 'documents', 'others'
+  const [filter, setFilter] = useState('all'); // 'all', 'images', 'documents'
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -109,7 +109,6 @@ export default function ServiceFiles({ route, navigation }) {
     total: files.length,
     images: files.filter(f => getFileType(f.file_name) === 'images').length,
     documents: files.filter(f => getFileType(f.file_name) === 'documents').length,
-    others: files.filter(f => getFileType(f.file_name) === 'others').length,
   };
 
   /* ================= LOADING ================= */
@@ -162,73 +161,44 @@ export default function ServiceFiles({ route, navigation }) {
             },
           ]}
         >
-          {/* ===== OVERVIEW CARD ===== */}
-          <View style={styles.overviewCard}>
-            <View style={styles.overviewHeader}>
-              <View style={styles.overviewIcon}>
-                <Ionicons name="folder-outline" size={28} color="#8b5cf6" />
+          {/* ===== SIMPLIFIED OVERVIEW ===== */}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <View style={styles.summaryIcon}>
+                <Ionicons name="folder-outline" size={24} color="#3b82f6" />
               </View>
-              <View style={styles.overviewContent}>
-                <Text style={styles.overviewTitle}>File Overview</Text>
-                <Text style={styles.overviewSubtitle}>
-                  All uploaded documents and images
+              <View>
+                <Text style={styles.summaryTitle}>File Overview</Text>
+                <Text style={styles.summaryStatus}>
+                  {files.length > 0 ? `${files.length} files` : 'No files yet'}
                 </Text>
               </View>
             </View>
 
             {files.length > 0 ? (
-              <>
-                <View style={styles.statsRow}>
-                  <StatItem 
-                    label="Total Files" 
-                    value={fileStats.total.toString()}
-                    icon="documents-outline"
-                    color="#3b82f6"
-                  />
-                  <View style={styles.statDivider} />
-                  <StatItem 
-                    label="Images" 
-                    value={fileStats.images.toString()}
-                    icon="image-outline"
-                    color="#10b981"
-                  />
-                  <View style={styles.statDivider} />
-                  <StatItem 
-                    label="Document" 
-                    value={fileStats.documents.toString()}
-                    icon="document-text-outline"
-                    color="#f59e0b"
-                  />
-                </View>
-
-                {/* ===== STORAGE BAR ===== */}
-                <View style={styles.storageContainer}>
-                  <View style={styles.storageLabels}>
-                    <Text style={styles.storageLabel}>Storage Usage</Text>
-                    <Text style={styles.storagePercentage}>
-                      {files.length > 0 ? 'Active' : 'Empty'}
-                    </Text>
-                  </View>
-                  <View style={styles.storageBar}>
-                    <View 
-                      style={[
-                        styles.storageFill,
-                        { 
-                          width: `${Math.min((files.length / 50) * 100, 100)}%`,
-                          backgroundColor: files.length > 0 ? '#8b5cf6' : '#94a3b8'
-                        }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.storageText}>
-                    {files.length} files uploaded • Limited to 50 files
-                  </Text>
-                </View>
-              </>
+              <View style={styles.statsRow}>
+                <StatBox 
+                  icon="documents-outline"
+                  label="Total"
+                  value={fileStats.total}
+                  color="#3b82f6"
+                />
+                <StatBox 
+                  icon="image-outline"
+                  label="Images"
+                  value={fileStats.images}
+                  color="#10b981"
+                />
+                <StatBox 
+                  icon="document-text-outline"
+                  label="Documents"
+                  value={fileStats.documents}
+                  color="#f59e0b"
+                />
+              </View>
             ) : (
               <View style={styles.emptyOverview}>
-                <Ionicons name="cloud-offline-outline" size={48} color="#64748b" />
-                <Text style={styles.emptyOverviewTitle}>No Files Yet</Text>
+                <Ionicons name="cloud-offline-outline" size={40} color="#64748b" />
                 <Text style={styles.emptyOverviewText}>
                   Files uploaded by the service provider will appear here
                 </Text>
@@ -236,105 +206,85 @@ export default function ServiceFiles({ route, navigation }) {
             )}
           </View>
 
-          {/* ===== FILTER BUTTONS ===== */}
+          {/* ===== SIMPLIFIED FILTERS ===== */}
           {files.length > 0 && (
-            <>
-              <View style={styles.filterContainer}>
-                <FilterButton 
-                  label="All Files" 
-                  active={filter === 'all'} 
+            <View style={styles.filterSection}>
+              <Text style={styles.filterTitle}>Filter by Type</Text>
+              <View style={styles.filterButtons}>
+                <TouchableOpacity
+                  style={[styles.filterBtn, filter === 'all' && styles.filterBtnActive]}
                   onPress={() => setFilter('all')}
-                  count={fileStats.total}
-                />
-                <FilterButton 
-                  label="Images" 
-                  active={filter === 'images'} 
-                  onPress={() => setFilter('images')}
-                  count={fileStats.images}
-                />
-                <FilterButton 
-                  label="Document" 
-                  active={filter === 'documents'} 
-                  onPress={() => setFilter('documents')}
-                  count={fileStats.documents}
-                />
-                <FilterButton 
-                  label="Others" 
-                  active={filter === 'others'} 
-                  onPress={() => setFilter('others')}
-                  count={fileStats.others}
-                />
-              </View>
-
-              {/* ===== FILES LIST CARD ===== */}
-              <View style={styles.filesCard}>
-                <View style={styles.cardHeader}>
-                  <Ionicons name="list-outline" size={24} color="#8b5cf6" />
-                  <Text style={styles.cardTitle}>Uploaded Files</Text>
-                  <Text style={styles.filesCount}>
-                    {filteredFiles.length} of {files.length}
+                >
+                  <Text style={[styles.filterBtnText, filter === 'all' && styles.filterBtnTextActive]}>
+                    All Files
                   </Text>
-                </View>
-
-                {filteredFiles.length === 0 ? (
-                  <View style={styles.emptyContainer}>
-                    <Ionicons name="search-outline" size={64} color="#475569" />
-                    <Text style={styles.emptyTitle}>
-                      No {filter === 'all' ? '' : filter} files found
-                    </Text>
-                    <Text style={styles.emptyText}>
-                      Try selecting a different filter category
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterBtn, filter === 'images' && styles.filterBtnActive]}
+                  onPress={() => setFilter('images')}
+                >
+                  <View style={styles.filterBtnContent}>
+                    <Ionicons name="image-outline" size={16} color={filter === 'images' ? '#10b981' : '#94a3b8'} />
+                    <Text style={[styles.filterBtnText, filter === 'images' && styles.filterBtnTextActive]}>
+                      Images
                     </Text>
                   </View>
-                ) : (
-                  <FlatList
-                    data={filteredFiles}
-                    keyExtractor={(item) => item.id.toString()}
-                    scrollEnabled={false}
-                    renderItem={({ item, index }) => (
-                      <FileItem 
-                        item={item} 
-                        index={index}
-                        isLast={index === filteredFiles.length - 1}
-                        onPress={() => openFile(item.file_path)}
-                      />
-                    )}
-                  />
-                )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterBtn, filter === 'documents' && styles.filterBtnActive]}
+                  onPress={() => setFilter('documents')}
+                >
+                  <View style={styles.filterBtnContent}>
+                    <Ionicons name="document-text-outline" size={16} color={filter === 'documents' ? '#f59e0b' : '#94a3b8'} />
+                    <Text style={[styles.filterBtnText, filter === 'documents' && styles.filterBtnTextActive]}>
+                      Documents
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
-            </>
+            </View>
           )}
 
-          {/* ===== FILE INFO CARD ===== */}
-          <View style={styles.infoCard}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="information-circle-outline" size={24} color="#8b5cf6" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>File Information</Text>
-              <Text style={styles.infoText}>
-                All files related to your service are stored here. Tap any file to view or download it. 
-                Files are organized by type for easy access.
-              </Text>
-            </View>
-          </View>
+          {/* ===== FILES LIST ===== */}
+          {files.length > 0 ? (
+            <View style={styles.listCard}>
+              <View style={styles.listHeader}>
+                <Ionicons name="list-outline" size={20} color="#3b82f6" />
+                <Text style={styles.listTitle}>Uploaded Files</Text>
+                <Text style={styles.listCount}>
+                  {filteredFiles.length}
+                </Text>
+              </View>
 
-          {/* ===== NEED HELP CARD ===== */}
-          <TouchableOpacity 
-            style={styles.helpCard}
-            onPress={() => navigation.navigate('Contact')}
-          >
-            <View style={styles.helpIcon}>
-              <Ionicons name="help-circle-outline" size={24} color="#3b82f6" />
+              {filteredFiles.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="search-outline" size={40} color="#475569" />
+                  <Text style={styles.emptyTitle}>
+                    No {filter === 'all' ? '' : filter} files found
+                  </Text>
+                  <Text style={styles.emptyText}>
+                    Try selecting a different filter
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.filesList}>
+                  {filteredFiles.map((item, index) => (
+                    <FileCard 
+                      key={item.id}
+                      item={item}
+                      isLast={index === filteredFiles.length - 1}
+                      onPress={() => openFile(item.file_path)}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
-            <View style={styles.helpContent}>
-              <Text style={styles.helpTitle}>Need Help with Files?</Text>
-              <Text style={styles.helpText}>
-                Contact support if you have issues viewing or downloading files
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
-          </TouchableOpacity>
+          ) : null}
+
+         
+          
+          {/* ===== BOTTOM SPACING ===== */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -343,31 +293,17 @@ export default function ServiceFiles({ route, navigation }) {
 
 /* ===== REUSABLE COMPONENTS ===== */
 
-const StatItem = ({ label, value, icon, color }) => (
-  <View style={styles.statItem}>
-    <Ionicons name={icon} size={20} color={color} />
+const StatBox = ({ icon, label, value, color }) => (
+  <View style={styles.statBox}>
+    <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
+      <Ionicons name={icon} size={20} color={color} />
+    </View>
+    <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
-    <Text style={[styles.statValue, { color }]}>{value}</Text>
   </View>
 );
 
-const FilterButton = ({ label, active, onPress, count }) => (
-  <TouchableOpacity
-    style={[styles.filterButton, active && styles.filterButtonActive]}
-    onPress={onPress}
-  >
-    <Text style={[styles.filterText, active && styles.filterTextActive]}>
-      {label}
-    </Text>
-    <View style={[styles.filterBadge, active && styles.filterBadgeActive]}>
-      <Text style={[styles.filterBadgeText, active && styles.filterBadgeTextActive]}>
-        {count}
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
-
-const FileItem = ({ item, index, isLast, onPress }) => {
+const FileCard = ({ item, isLast, onPress }) => {
   const getFileIcon = (fileName) => {
     const ext = fileName.split('.').pop().toLowerCase();
     
@@ -385,6 +321,7 @@ const FileItem = ({ item, index, isLast, onPress }) => {
   };
 
   const formatFileSize = (sizeInBytes) => {
+    if (!sizeInBytes) return '';
     if (sizeInBytes < 1024) return sizeInBytes + ' B';
     if (sizeInBytes < 1024 * 1024) return (sizeInBytes / 1024).toFixed(1) + ' KB';
     return (sizeInBytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -395,13 +332,12 @@ const FileItem = ({ item, index, isLast, onPress }) => {
     ? new Date(item.uploaded_at).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
       })
     : 'Recent';
 
   return (
     <TouchableOpacity 
-      style={[styles.fileItem, isLast && styles.fileItemLast]}
+      style={[styles.fileCard, !isLast && styles.fileBorder]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -409,13 +345,11 @@ const FileItem = ({ item, index, isLast, onPress }) => {
         <View style={[styles.fileIcon, { backgroundColor: `${fileIcon.color}15` }]}>
           <Ionicons name={fileIcon.name} size={20} color={fileIcon.color} />
         </View>
-        <View style={styles.fileInfo}>
+        <View style={styles.fileDetails}>
           <Text style={styles.fileName} numberOfLines={1}>
             {item.file_name}
           </Text>
           <View style={styles.fileMeta}>
-            <Text style={styles.fileType}>{item.file_type || 'File'}</Text>
-            <Text style={styles.metaSeparator}>•</Text>
             <Text style={styles.fileDate}>{uploadDate}</Text>
             {item.file_size && (
               <>
@@ -426,7 +360,7 @@ const FileItem = ({ item, index, isLast, onPress }) => {
           </View>
         </View>
       </View>
-      <Ionicons name="download-outline" size={20} color="#64748b" />
+      <Ionicons name="download-outline" size={18} color="#64748b" />
     </TouchableOpacity>
   );
 };
@@ -473,244 +407,188 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
   },
-  overviewCard: {
+  
+  // Summary Card
+  summaryCard: {
     backgroundColor: '#1e293b',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  overviewHeader: {
+  summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  overviewIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+  summaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
-  overviewContent: {
-    flex: 1,
-  },
-  overviewTitle: {
-    fontSize: 20,
+  summaryTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
-    letterSpacing: -0.3,
   },
-  overviewSubtitle: {
-    fontSize: 15,
+  summaryStatus: {
+    fontSize: 14,
     color: '#94a3b8',
     fontWeight: '500',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
   },
-  statItem: {
+  statBox: {
+    alignItems: 'center',
     flex: 1,
-    alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 8,
-    marginBottom: 4,
-    fontWeight: '500',
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   statValue: {
     fontSize: 20,
     fontWeight: '800',
     color: '#f8fafc',
+    marginBottom: 4,
   },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#334155',
-  },
-  storageContainer: {
-    marginTop: 8,
-  },
-  storageLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  storageLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#cbd5e1',
-  },
-  storagePercentage: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#8b5cf6',
-  },
-  storageBar: {
-    height: 8,
-    backgroundColor: '#0f172a',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  storageFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  storageText: {
-    fontSize: 13,
+  statLabel: {
+    fontSize: 12,
     color: '#94a3b8',
     fontWeight: '500',
   },
   emptyOverview: {
     alignItems: 'center',
-    paddingVertical: 20,
-  },
-  emptyOverviewTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginTop: 16,
-    marginBottom: 8,
+    paddingVertical: 16,
   },
   emptyOverviewText: {
     fontSize: 14,
     color: '#94a3b8',
     textAlign: 'center',
+    marginTop: 12,
     lineHeight: 20,
-    maxWidth: '80%',
   },
-  filterContainer: {
+  
+  // Filter Section
+  filterSection: {
+    marginBottom: 20,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f8fafc',
+    marginBottom: 12,
+  },
+  filterButtons: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
-    borderRadius: 14,
-    padding: 8,
-    marginBottom: 20,
+    borderRadius: 12,
+    padding: 6,
     borderWidth: 1,
     borderColor: '#2d3748',
   },
-  filterButton: {
+  filterBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  filterButtonActive: {
+  filterBtnActive: {
     backgroundColor: '#0f172a',
   },
-  filterText: {
-    fontSize: 13,
+  filterBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterBtnText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#94a3b8',
-    marginRight: 6,
   },
-  filterTextActive: {
-    color: '#8b5cf6',
+  filterBtnTextActive: {
+    color: '#f8fafc',
   },
-  filterBadge: {
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    minWidth: 22,
-    height: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  filterBadgeActive: {
-    backgroundColor: '#8b5cf6',
-  },
-  filterBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#cbd5e1',
-  },
-  filterBadgeTextActive: {
-    color: '#ffffff',
-  },
-  filesCard: {
+  
+  // List Card
+  listCard: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
   },
-  cardHeader: {
+  listHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  cardTitle: {
-    fontSize: 20,
+  listTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginLeft: 12,
     flex: 1,
-    letterSpacing: -0.3,
   },
-  filesCount: {
+  listCount: {
     fontSize: 14,
-    color: '#94a3b8',
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  emptyContainer: {
+  emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 32,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#f8fafc',
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#94a3b8',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  fileItem: {
+  filesList: {
+    gap: 12,
+  },
+  fileCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 16,
+  },
+  fileBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
-  },
-  fileItemLast: {
-    borderBottomWidth: 0,
   },
   fileLeft: {
     flexDirection: 'row',
@@ -725,11 +603,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  fileInfo: {
+  fileDetails: {
     flex: 1,
   },
   fileName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#f8fafc',
     marginBottom: 6,
@@ -737,9 +615,8 @@ const styles = StyleSheet.create({
   fileMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
   },
-  fileType: {
+  fileDate: {
     fontSize: 13,
     color: '#94a3b8',
     fontWeight: '500',
@@ -748,59 +625,31 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginHorizontal: 8,
   },
-  fileDate: {
-    fontSize: 13,
-    color: '#94a3b8',
-    fontWeight: '500',
-  },
   fileSize: {
     fontSize: 13,
     color: '#64748b',
     fontWeight: '500',
   },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
+  
+  // Support Section
+  supportContainer: {
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#2d3748',
-    alignItems: 'center',
   },
-  infoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    lineHeight: 20,
-  },
-  helpCard: {
+  supportCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  helpIcon: {
+  supportIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -809,17 +658,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  helpContent: {
+  supportContent: {
     flex: 1,
   },
-  helpTitle: {
-    fontSize: 16,
+  supportTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
-  helpText: {
+  supportText: {
     fontSize: 14,
     color: '#94a3b8',
+  },
+  
+  // Bottom Spacing
+  bottomSpacing: {
+    height: 80,
   },
 });

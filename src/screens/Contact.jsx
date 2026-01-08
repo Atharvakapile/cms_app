@@ -115,39 +115,48 @@ export default function Contact() {
             />
           </View>
 
-          {/* ===== CONTACT DETAILS CARD ===== */}
+          {/* ===== BUSINESS TIMINGS SECTION ===== */}
           <View style={styles.detailCard}>
             <View style={styles.cardHeader}>
-              <Ionicons name="information-circle-outline" size={24} color="#3b82f6" />
-              <Text style={styles.cardTitle}>Contact Details</Text>
+              <Ionicons name="time-outline" size={24} color="#f59e0b" />
+              <Text style={styles.cardTitle}>Business Timings</Text>
             </View>
             
-            <ContactRow
-              icon="mail-outline"
-              title="Email Address"
-              subtitle="imperiumofficialgroup@gmail.com"
-              onPress={openEmail}
-            />
+            <View style={styles.timingsContainer}>
+              <View style={styles.timingRow}>
+                <View style={styles.dayContainer}>
+                  <Text style={styles.dayText}>Monday – Friday</Text>
+                </View>
+                <View style={styles.timeContainer}>
+                  <Text style={styles.timeText}>10:00 AM – 10:00 PM</Text>
+                </View>
+              </View>
+              
+              <View style={styles.timingRow}>
+                <View style={styles.dayContainer}>
+                  <Text style={styles.dayText}>Saturday</Text>
+                </View>
+                <View style={styles.timeContainer}>
+                  <Text style={styles.timeText}>10:00 AM – 8:00 PM</Text>
+                </View>
+              </View>
+              
+              <View style={styles.timingRow}>
+                <View style={styles.dayContainer}>
+                  <Text style={styles.dayText}>Sunday</Text>
+                </View>
+                <View style={styles.timeContainer}>
+                  <Text style={styles.closedText}>Closed</Text>
+                </View>
+              </View>
+            </View>
             
-            <ContactRow
-              icon="call-outline"
-              title="Phone Number"
-              subtitle="+91 78877 41483"
-              onPress={openPhone}
-            />
-            
-            <ContactRow
-              icon="location-outline"
-              title="Headquarters"
-              subtitle="Pune, Maharashtra, India"
-              onPress={openMaps}
-            />
-            
-            <ContactRow
-              icon="time-outline"
-              title="Business Hours"
-              subtitle="Mon – Sat • 10:00 AM – 7:00 PM"
-            />
+            <View style={styles.noteContainer}>
+              <Ionicons name="information-circle-outline" size={18} color="#94a3b8" />
+              <Text style={styles.noteText}>
+                Response time: Within 24 hours during business days
+              </Text>
+            </View>
           </View>
 
           {/* ===== SERVICES CARD ===== */}
@@ -220,18 +229,9 @@ export default function Contact() {
             </View>
           </View>
 
-          {/* ===== FOOTER ===== */}
-          <View style={styles.footerCard}>
-            <View style={styles.footerIcon}>
-              <Ionicons name="shield-checkmark-outline" size={24} color="#10b981" />
-            </View>
-            <Text style={styles.footerText}>
-              Trusted Partner for Digital Transformation
-            </Text>
-            <Text style={styles.footerSubtext}>
-              Since 2024 • Based in Pune, India
-            </Text>
-          </View>
+          
+          {/* ===== BOTTOM SPACING ===== */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -246,27 +246,6 @@ const QuickAction = ({ icon, label, onPress, color }) => (
       <Ionicons name={icon} size={24} color={color} />
     </View>
     <Text style={styles.actionLabel}>{label}</Text>
-  </TouchableOpacity>
-);
-
-const ContactRow = ({ icon, title, subtitle, onPress }) => (
-  <TouchableOpacity 
-    style={styles.contactRow} 
-    onPress={onPress}
-    activeOpacity={onPress ? 0.7 : 1}
-  >
-    <View style={styles.contactIcon}>
-      <Ionicons name={icon} size={20} color="#3b82f6" />
-    </View>
-    <View style={styles.contactContent}>
-      <Text style={styles.contactTitle}>{title}</Text>
-      <Text style={[styles.contactSubtitle, onPress && styles.link]}>
-        {subtitle}
-      </Text>
-    </View>
-    {onPress && (
-      <Ionicons name="chevron-forward" size={20} color="#64748b" />
-    )}
   </TouchableOpacity>
 );
 
@@ -332,7 +311,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
@@ -451,41 +430,63 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     letterSpacing: -0.3,
   },
-  contactRow: {
+  
+  // Business Timings Section
+  timingsContainer: {
+    marginBottom: 20,
+  },
+  timingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2d3748',
+    justifyContent: 'space-between',
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  contactIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  contactContent: {
+  dayContainer: {
     flex: 1,
   },
-  contactTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#cbd5e1',
-    marginBottom: 4,
-  },
-  contactSubtitle: {
+  dayText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#f8fafc',
-    letterSpacing: -0.2,
   },
-  link: {
-    color: '#3b82f6',
+  timeContainer: {
+    flexShrink: 0,
+    marginLeft: 16,
   },
-  // Centered Services Grid
+  timeText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#10b981',
+  },
+  closedText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  noteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#f8fafc',
+    marginLeft: 12,
+    flex: 1,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  
+  // Services Grid (Centered)
   servicesGrid: {
     marginBottom: 24,
   },
@@ -506,6 +507,7 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     minWidth: width * 0.4,
     maxWidth: width * 0.45,
+    justifyContent: 'center',
   },
   badgeIcon: {
     marginRight: 10,
@@ -577,42 +579,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94a3b8',
   },
-  footerCard: {
+  
+  // Support Section
+  supportContainer: {
+    marginBottom: 20,
+  },
+  supportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  footerIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  supportIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    marginRight: 16,
   },
-  footerText: {
+  supportContent: {
+    flex: 1,
+  },
+  supportTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
-    textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: -0.3,
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
-  footerSubtext: {
+  supportText: {
     fontSize: 14,
     color: '#94a3b8',
-    textAlign: 'center',
-    fontWeight: '500',
+  },
+  
+  // Bottom spacing for safe area
+  bottomSpacing: {
+    height: 80,
   },
 });

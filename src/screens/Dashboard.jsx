@@ -9,7 +9,6 @@ import {
   Image,
   Animated,
   Dimensions,
-  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -96,6 +95,7 @@ export default function Dashboard({ navigation }) {
   const [summary, setSummary] = useState({
     activeCount: 0,
     expiredCount: 0,
+    expiringSoonCount: 0,
   });
   const [serviceDatesMap, setServiceDatesMap] = useState({});
   
@@ -134,6 +134,9 @@ export default function Dashboard({ navigation }) {
   const calculateServiceDates = async (servicesData) => {
     const datesMap = {};
     let activeCount = 0;
+    let expiringSoonCount = 0;
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
     
     for (const service of servicesData) {
       const dates = await getCurrentServiceDates(
@@ -145,6 +148,11 @@ export default function Dashboard({ navigation }) {
       
       if (dates.isActive) {
         activeCount++;
+        
+        // Check if service expires within 30 days
+        if (dates.currentEnd <= thirtyDaysFromNow && dates.currentEnd >= today) {
+          expiringSoonCount++;
+        }
       }
     }
     
@@ -152,6 +160,7 @@ export default function Dashboard({ navigation }) {
     setSummary({
       activeCount: activeCount,
       expiredCount: servicesData.length - activeCount,
+      expiringSoonCount: expiringSoonCount,
     });
     
     // Start animations after data loads
@@ -177,28 +186,28 @@ export default function Dashboard({ navigation }) {
   const announcements = [
     {
       id: 1,
-      title: 'New Service Enhancements',
-      text: 'Improved tracking and faster updates are now live.',
+      title: 'Tailored Business Solutions',
+      text: 'Bespoke software solutions designed specifically for your industry needs and operational requirements',
       image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&auto=format&fit=crop',
-      link: 'https://imperiumofficial.com/updates',
+      link: 'https://imperiumofficial.in/custom.php',
       icon: 'rocket-outline',
       color: '#3b82f6',
     },
     {
       id: 2,
       title: 'Upcoming Offers',
-      text: 'Exclusive renewal benefits coming soon.',
+      text: 'Transparent Pricing for Every Business.',
       image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w-800&auto=format&fit=crop',
-      link: 'https://imperiumofficial.com/offers',
+      link: 'https://imperiumofficial.in/pricing.php',
       icon: 'gift-outline',
       color: '#8b5cf6',
     },
     {
       id: 3,
-      title: 'Mobile App Update',
-      text: 'New features and improved performance.',
+      title: 'Enterprise-grade solutions',
+      text: 'Comprehensive software suite designed to streamline operations, drive efficiency, and accelerate business growth across industries.',
       image: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=800&auto=format&fit=crop',
-      link: 'https://imperiumofficial.com/app-update',
+      link: 'https://imperiumofficial.in/products.php',
       icon: 'phone-portrait-outline',
       color: '#10b981',
     },
@@ -214,10 +223,6 @@ export default function Dashboard({ navigation }) {
       </SafeAreaView>
     );
   }
-
-  const overallStatus = summary.activeCount > 0
-    ? 'All Services Active'
-    : 'Action Required';
 
   const getGreeting = () => {
     const hour = today.getHours();
@@ -264,57 +269,29 @@ export default function Dashboard({ navigation }) {
             </View>
           </Animated.View>
 
-          {/* ===== QUICK STATS ===== */}
-          <View style={styles.statsRow}>
-            <StatCard
-              icon="checkmark-circle"
-              label="Active Services"
-              value={summary.activeCount}
-              color="#10b981"
-            />
-            <StatCard
-              icon="time-outline"
-              label="Expiring Soon"
-              value={summary.expiredCount}
-              color="#f59e0b"
-            />
-            <StatCard
-              icon="calendar-outline"
-              label="Total Services"
-              value={services.length}
-              color="#3b82f6"
-            />
-          </View>
-
-          {/* ===== STATUS OVERVIEW ===== */}
-          <View style={styles.statusCard}>
-            <View style={styles.statusHeader}>
-              <View style={[
-                styles.statusIcon,
-                { backgroundColor: summary.activeCount > 0 ? '#10b98120' : '#ef444420' }
-              ]}>
-                <Ionicons
-                  name={summary.activeCount > 0 ? 'checkmark-circle' : 'alert-circle'}
-                  size={24}
-                  color={summary.activeCount > 0 ? '#10b981' : '#ef4444'}
-                />
-              </View>
-              <View style={styles.statusContent}>
-                <Text style={styles.statusTitle}>{overallStatus}</Text>
-                <Text style={styles.statusSubtitle}>
-                  Keep track of your active and expired services
-                </Text>
-              </View>
+          {/* ===== IMPROVED KPI CARDS ===== */}
+          <View style={styles.kpiSection}>
+            <Text style={styles.kpiTitle}>Action Required</Text>
+            <View style={styles.kpiGrid}>
+              <KPICard
+                icon="alert-circle"
+                label="Expired"
+                value={summary.expiredCount}
+                total={services.length}
+                color="#ef4444"
+                progress={services.length > 0 ? (summary.expiredCount / services.length) * 100 : 0}
+                type="expired"
+              />
+              <KPICard
+                icon="time"
+                label="Expiring Soon"
+                value={summary.expiringSoonCount}
+                total={summary.activeCount}
+                color="#f59e0b"
+                progress={summary.activeCount > 0 ? (summary.expiringSoonCount / summary.activeCount) * 100 : 0}
+                type="expiring"
+              />
             </View>
-            <View style={styles.statusProgress}>
-              <View style={[
-                styles.progressBar,
-                { width: `${(summary.activeCount / services.length) * 100 || 0}%` }
-              ]} />
-            </View>
-            <Text style={styles.progressText}>
-              {summary.activeCount} of {services.length} services active
-            </Text>
           </View>
 
           {/* ===== SERVICES PREVIEW ===== */}
@@ -390,21 +367,31 @@ export default function Dashboard({ navigation }) {
           </View>
 
           {/* ===== SUPPORT CARD ===== */}
-          <TouchableOpacity
-            style={styles.supportCard}
-            onPress={() => navigation.navigate('Contact')}
-          >
-            <View style={styles.supportIcon}>
-              <Ionicons name="headset-outline" size={28} color="#3b82f6" />
-            </View>
-            <View style={styles.supportContent}>
-              <Text style={styles.supportTitle}>Need Assistance?</Text>
-              <Text style={styles.supportText}>
-                Contact our support team for any queries
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
-          </TouchableOpacity>
+          <View style={styles.supportContainer}>
+            <TouchableOpacity
+              style={styles.supportCard}
+              onPress={() => navigation.navigate('Contact')}
+              activeOpacity={0.9}
+            >
+              <View style={styles.supportIconContainer}>
+                <View style={styles.supportIcon}>
+                  <Ionicons name="headset-outline" size={24} color="#fff" />
+                </View>
+              </View>
+              <View style={styles.supportContent}>
+                <Text style={styles.supportTitle}>Need Assistance?</Text>
+                <Text style={styles.supportText}>
+                  Get help from our support team 24/7
+                </Text>
+              </View>
+              <View style={styles.arrowContainer}>
+                <Ionicons name="chevron-forward" size={20} color="#64748b" />
+              </View>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Extra bottom spacing for safe area */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -413,46 +400,106 @@ export default function Dashboard({ navigation }) {
 
 /* ===== REUSABLE COMPONENTS ===== */
 
-const StatCard = ({ icon, label, value, color }) => (
-  <View style={styles.statCard}>
-    <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-      <Ionicons name={icon} size={22} color={color} />
+const KPICard = ({ icon, label, value, total, color, progress, type }) => (
+  <View style={styles.kpiCard}>
+    <View style={styles.kpiHeader}>
+      <View style={[styles.kpiIconContainer, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <View style={styles.kpiLabelContainer}>
+        <Text style={styles.kpiLabel} numberOfLines={1}>{label}</Text>
+      </View>
     </View>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
+    
+    <View style={styles.kpiValueRow}>
+      <Text style={styles.kpiValue} numberOfLines={1}>
+        {value}
+      </Text>
+      {type === 'expired' && (
+        <Text style={styles.kpiSubtext} numberOfLines={1}>
+          of {total} services
+        </Text>
+      )}
+      {type === 'expiring' && (
+        <Text style={styles.kpiSubtext} numberOfLines={1}>
+          of {total} active
+        </Text>
+      )}
+    </View>
+    
+    <View style={styles.progressContainer}>
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBar, { backgroundColor: `${color}30` }]}>
+          <View 
+            style={[
+              styles.progressFill, 
+              { 
+                width: `${Math.min(progress, 100)}%`,
+                backgroundColor: color,
+              }
+            ]} 
+          />
+        </View>
+      </View>
+      <View style={styles.percentContainer}>
+        <Text style={[styles.percentValue, { color }]} numberOfLines={1}>
+          {Math.round(progress)}%
+        </Text>
+      </View>
+    </View>
   </View>
 );
 
-const ServiceCard = ({ service, active, endDate, onPress }) => (
-  <TouchableOpacity style={styles.serviceCard} onPress={onPress}>
-    <View style={styles.serviceContent}>
-      <View style={styles.serviceIcon}>
-        <Ionicons name="cube-outline" size={20} color="#3b82f6" />
-      </View>
-      <View style={styles.serviceInfo}>
-        <Text style={styles.serviceName}>{service.service_type}</Text>
-        <View style={styles.serviceMeta}>
-          <Ionicons name="calendar-outline" size={12} color="#94a3b8" />
-          <Text style={styles.serviceDate}>
-            Valid till {endDate.toLocaleDateString()}
-          </Text>
+const ServiceCard = ({ service, active, endDate, onPress }) => {
+  const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+  const isExpiringSoon = active && daysRemaining <= 30 && daysRemaining > 0;
+  
+  return (
+    <TouchableOpacity style={styles.serviceCard} onPress={onPress} activeOpacity={0.9}>
+      <View style={styles.serviceContent}>
+        <View style={[
+          styles.serviceIcon,
+          { backgroundColor: active ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)' }
+        ]}>
+          <Ionicons 
+            name="cube-outline" 
+            size={20} 
+            color={active ? '#3b82f6' : '#ef4444'} 
+          />
+        </View>
+        <View style={styles.serviceInfo}>
+          <Text style={styles.serviceName} numberOfLines={1}>{service.service_type}</Text>
+          <View style={styles.serviceMeta}>
+            <Ionicons name="calendar-outline" size={12} color="#94a3b8" />
+            <Text style={styles.serviceDate} numberOfLines={1}>
+              {active ? 'Expires' : 'Expired'} {endDate.toLocaleDateString()}
+            </Text>
+            {isExpiringSoon && (
+              <>
+                <Text style={styles.separator}>•</Text>
+                <Text style={styles.expiringText} numberOfLines={1}>
+                  {daysRemaining} days left
+                </Text>
+              </>
+            )}
+          </View>
         </View>
       </View>
-    </View>
-    <View style={[
-      styles.serviceStatus,
-      active ? styles.statusActive : styles.statusExpired
-    ]}>
       <View style={[
-        styles.statusDot,
-        { backgroundColor: active ? '#10b981' : '#ef4444' }
-      ]} />
-      <Text style={styles.statusText}>
-        {active ? 'Active' : 'Expired'}
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
+        styles.serviceStatus,
+        active ? styles.statusActive : styles.statusExpired
+      ]}>
+        <View style={[
+          styles.statusDot,
+          { backgroundColor: active ? '#10b981' : '#ef4444' }
+        ]} />
+        <Text style={styles.statusText} numberOfLines={1}>
+          {active ? 'Active' : 'Expired'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const AnnouncementCard = ({ item, index }) => (
   <TouchableOpacity
@@ -469,8 +516,8 @@ const AnnouncementCard = ({ item, index }) => (
       <View style={[styles.announcementIcon, { backgroundColor: `${item.color}20` }]}>
         <Ionicons name={item.icon} size={18} color={item.color} />
       </View>
-      <Text style={styles.announcementTitle}>{item.title}</Text>
-      <Text style={styles.announcementText}>{item.text}</Text>
+      <Text style={styles.announcementTitle} numberOfLines={1}>{item.title}</Text>
+      <Text style={styles.announcementText} numberOfLines={2}>{item.text}</Text>
       <View style={styles.announcementCta}>
         <Text style={styles.announcementCtaText}>Learn More</Text>
         <Ionicons name="arrow-forward" size={14} color="#3b82f6" />
@@ -521,7 +568,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
@@ -575,98 +622,103 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(59, 130, 246, 0.3)',
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  
+  // KPI Section
+  kpiSection: {
     marginBottom: 24,
-    gap: 12,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2d3748',
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#f8fafc',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  statusCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  statusIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statusContent: {
-    flex: 1,
-  },
-  statusTitle: {
+  kpiTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
-    marginBottom: 4,
+    marginBottom: 16,
     letterSpacing: -0.3,
   },
-  statusSubtitle: {
+  kpiGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  kpiCard: {
+    flex: 1,
+    minWidth: 0, // Prevents overflow
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  kpiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  kpiIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    flexShrink: 0,
+  },
+  kpiLabelContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  kpiLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#f8fafc',
+    flexShrink: 1,
+  },
+  kpiValueRow: {
+    marginBottom: 16,
+  },
+  kpiValue: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#f8fafc',
+    lineHeight: 40,
+    marginBottom: 4,
+  },
+  kpiSubtext: {
     fontSize: 14,
-    color: '#94a3b8',
-  },
-  statusProgress: {
-    height: 8,
-    backgroundColor: '#0f172a',
-    borderRadius: 4,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 13,
     color: '#94a3b8',
     fontWeight: '500',
   },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressBarContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  progressBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  percentContainer: {
+    flexShrink: 0,
+  },
+  percentValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  
+  // Section Styles
   section: {
     marginBottom: 24,
   },
@@ -724,10 +776,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  
+  // Service Card
   serviceCard: {
     backgroundColor: '#1e293b',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -739,18 +793,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
   },
   serviceIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    flexShrink: 0,
   },
   serviceInfo: {
     flex: 1,
+    minWidth: 0,
   },
   serviceName: {
     fontSize: 16,
@@ -761,12 +817,25 @@ const styles = StyleSheet.create({
   serviceMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    minWidth: 0,
   },
   serviceDate: {
     fontSize: 13,
     color: '#94a3b8',
     marginLeft: 6,
     fontWeight: '500',
+    flexShrink: 1,
+  },
+  separator: {
+    color: '#475569',
+    marginHorizontal: 6,
+  },
+  expiringText: {
+    fontSize: 13,
+    color: '#f59e0b',
+    fontWeight: '600',
+    flexShrink: 0,
   },
   serviceStatus: {
     flexDirection: 'row',
@@ -776,7 +845,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    flexShrink: 0,
+    marginLeft: 8,
   },
   statusDot: {
     width: 8,
@@ -795,6 +865,8 @@ const styles = StyleSheet.create({
   statusExpired: {
     borderColor: '#ef444430',
   },
+  
+  // Announcements
   announcementsScroll: {
     paddingLeft: 2,
   },
@@ -856,30 +928,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 6,
   },
+  
+  // Support Card with better spacing
+  supportContainer: {
+    marginBottom: 24,
+  },
   supportCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  supportIconContainer: {
+    marginRight: 16,
   },
   supportIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#3b82f6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
   },
   supportContent: {
     flex: 1,
+    minWidth: 0,
   },
   supportTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
@@ -888,5 +972,13 @@ const styles = StyleSheet.create({
   supportText: {
     fontSize: 14,
     color: '#94a3b8',
+  },
+  arrowContainer: {
+    paddingLeft: 8,
+  },
+  
+  // Bottom spacing for safe area
+  bottomSpacing: {
+    height: 80,
   },
 });

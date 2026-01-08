@@ -108,8 +108,9 @@ export default function ServicesList({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all'); // 'all', 'active', 'expired'
   const [serviceDatesMap, setServiceDatesMap] = useState({});
+  const [showStats, setShowStats] = useState(false); // Collapsible stats
   
-  // Animation values
+  // Animation values for list items only
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
@@ -172,6 +173,10 @@ export default function ServicesList({ navigation }) {
     // Clear cache on refresh
     Object.keys(timelineCache).forEach(key => delete timelineCache[key]);
     fetchServices();
+  };
+
+  const toggleStats = () => {
+    setShowStats(!showStats);
   };
 
   const filteredServices = services.filter(item => {
@@ -347,29 +352,54 @@ export default function ServicesList({ navigation }) {
       </View>
 
       <View style={styles.container}>
-        {/* ===== STATISTICS ===== */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: '#3b82f615' }]}>
-              <Ionicons name="cube-outline" size={20} color="#3b82f6" />
+        {/* ===== COLLAPSIBLE STATS SECTION ===== */}
+        <View style={styles.statsSection}>
+          <TouchableOpacity 
+            style={styles.statsToggle}
+            onPress={toggleStats}
+            activeOpacity={0.8}
+          >
+            <View style={styles.statsToggleLeft}>
+              <View style={styles.statsIcon}>
+                <Ionicons name="stats-chart-outline" size={20} color="#3b82f6" />
+              </View>
+              <Text style={styles.statsToggleText}>
+                Service Statistics {showStats ? '(Hide)' : '(Show)'}
+              </Text>
             </View>
-            <Text style={styles.statValue}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: '#10b98115' }]}>
-              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            <Ionicons 
+              name={showStats ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#64748b" 
+            />
+          </TouchableOpacity>
+
+          {/* Collapsible Stats Content - Simple show/hide without animation */}
+          {showStats && (
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <View style={[styles.statIcon, { backgroundColor: '#3b82f615' }]}>
+                  <Ionicons name="cube-outline" size={20} color="#3b82f6" />
+                </View>
+                <Text style={styles.statValue}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              <View style={styles.statItem}>
+                <View style={[styles.statIcon, { backgroundColor: '#10b98115' }]}>
+                  <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                </View>
+                <Text style={styles.statValue}>{stats.active}</Text>
+                <Text style={styles.statLabel}>Active</Text>
+              </View>
+              <View style={styles.statItem}>
+                <View style={[styles.statIcon, { backgroundColor: '#ef444415' }]}>
+                  <Ionicons name="time-outline" size={20} color="#ef4444" />
+                </View>
+                <Text style={styles.statValue}>{stats.expired}</Text>
+                <Text style={styles.statLabel}>Expired</Text>
+              </View>
             </View>
-            <Text style={styles.statValue}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: '#ef444415' }]}>
-              <Ionicons name="time-outline" size={20} color="#ef4444" />
-            </View>
-            <Text style={styles.statValue}>{stats.expired}</Text>
-            <Text style={styles.statLabel}>Expired</Text>
-          </View>
+          )}
         </View>
 
         {/* ===== FILTER BUTTONS ===== */}
@@ -448,7 +478,10 @@ export default function ServicesList({ navigation }) {
             data={filteredServices}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderService}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              showStats && styles.listContentWithStats
+            ]}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -462,6 +495,9 @@ export default function ServicesList({ navigation }) {
               <Text style={styles.resultsCount}>
                 Showing {filteredServices.length} of {services.length} services
               </Text>
+            }
+            ListFooterComponent={
+              <View style={styles.bottomSpacing} />
             }
           />
         )}
@@ -514,20 +550,56 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+  
+  // Collapsible Stats Section
+  statsSection: {
+    marginBottom: 20,
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2d3748',
+    overflow: 'hidden',
+  },
+  statsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  statsToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statsIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statsToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f8fafc',
+  },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     gap: 12,
   },
   statItem: {
     flex: 1,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#0f172a',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2d3748',
+    borderColor: '#334155',
   },
   statIcon: {
     width: 44,
@@ -548,6 +620,8 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontWeight: '500',
   },
+  
+  // Filter Section
   filterContainer: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
@@ -598,8 +672,13 @@ const styles = StyleSheet.create({
   filterBadgeTextActive: {
     color: '#ffffff',
   },
+  
+  // List Content
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
+  },
+  listContentWithStats: {
+    // Optional: Add padding if needed when stats are shown
   },
   resultsCount: {
     fontSize: 14,
@@ -607,6 +686,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontWeight: '500',
   },
+  
+  // Service Card
   serviceCard: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
@@ -743,6 +824,8 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '600',
   },
+  
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -785,5 +868,10 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontSize: 15,
     fontWeight: '600',
+  },
+  
+  // Bottom Spacing
+  bottomSpacing: {
+    height: 80,
   },
 });

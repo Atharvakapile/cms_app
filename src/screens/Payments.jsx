@@ -166,22 +166,23 @@ export default function Payments({ route, navigation }) {
             },
           ]}
         >
-          {/* ===== PAYMENT OVERVIEW CARD ===== */}
-          <View style={styles.overviewCard}>
-            <View style={styles.overviewHeader}>
-              <View style={styles.overviewIcon}>
-                <Ionicons name="cash-outline" size={28} color="#10b981" />
+          {/* ===== SIMPLIFIED PAYMENT SUMMARY ===== */}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <View style={styles.summaryIcon}>
+                <Ionicons name="cash-outline" size={24} color="#10b981" />
               </View>
-              <View style={styles.overviewContent}>
-                <Text style={styles.overviewTitle}>Payment Overview</Text>
-                <Text style={styles.overviewSubtitle}>
+              <View>
+                <Text style={styles.summaryTitle}>Payment Summary</Text>
+                <Text style={styles.summaryStatus}>
                   {summary?.status === 'completed' ? 'Fully Paid' : 'Payment In Progress'}
                 </Text>
               </View>
             </View>
 
+            {/* Simplified Progress */}
             <View style={styles.progressContainer}>
-              <View style={styles.progressLabels}>
+              <View style={styles.progressHeader}>
                 <Text style={styles.progressLabel}>Payment Progress</Text>
                 <Text style={styles.progressPercentage}>{progressPercentage.toFixed(0)}%</Text>
               </View>
@@ -195,158 +196,129 @@ export default function Payments({ route, navigation }) {
               </View>
             </View>
 
-            {summary && (
-              <View style={styles.summaryGrid}>
-                <StatItem 
-                  label="Total Amount" 
-                  value={formatCurrency(summary.total)}
-                  icon="wallet-outline"
-                  color="#3b82f6"
-                />
-                <StatItem 
-                  label="Amount Paid" 
-                  value={formatCurrency(summary.paid)}
-                  icon="checkmark-circle"
-                  color="#10b981"
-                />
-                <StatItem 
-                  label="Balance Due" 
-                  value={formatCurrency(summary.remaining)}
-                  icon="alert-circle"
-                  color={summary.remaining > 0 ? '#ef4444' : '#10b981'}
-                />
-                <StatItem 
-                  label="Status" 
-                  value={summary.status === 'completed' ? 'Paid' : 'Pending'}
-                  icon="time-outline"
-                  color={summary.status === 'completed' ? '#10b981' : '#f59e0b'}
-                />
+            {/* Simplified Amounts */}
+            <View style={styles.amountsRow}>
+              <View style={styles.amountItem}>
+                <Text style={styles.amountLabel}>Total</Text>
+                <Text style={styles.amountValue}>{formatCurrency(summary?.total || 0)}</Text>
               </View>
-            )}
-          </View>
-
-          {/* ===== PAYMENT STATS CARD ===== */}
-          <View style={styles.statsCard}>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="calendar-outline" size={20} color="#8b5cf6" />
-                <Text style={styles.statLabel}>Total Payments</Text>
-                <Text style={styles.statValue}>{installments.length}</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                <Text style={styles.statLabel}>Completed</Text>
-                <Text style={styles.statValue}>
-                  {installments.filter(item => item.status === 'completed' || item.paid_at).length}
+              <View style={styles.amountDivider} />
+              <View style={styles.amountItem}>
+                <Text style={styles.amountLabel}>Paid</Text>
+                <Text style={[styles.amountValue, { color: '#10b981' }]}>
+                  {formatCurrency(summary?.paid || 0)}
                 </Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={20} color="#f59e0b" />
-                <Text style={styles.statLabel}>Pending</Text>
-                <Text style={styles.statValue}>
-                  {installments.filter(item => item.status === 'pending' || !item.paid_at).length}
+              <View style={styles.amountDivider} />
+              <View style={styles.amountItem}>
+                <Text style={styles.amountLabel}>Due</Text>
+                <Text style={[styles.amountValue, { color: summary?.remaining > 0 ? '#ef4444' : '#10b981' }]}>
+                  {formatCurrency(summary?.remaining || 0)}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* ===== FILTER BUTTONS ===== */}
-          <View style={styles.filterContainer}>
-            <FilterButton 
-              label="All Payments" 
-              active={filter === 'all'} 
-              onPress={() => setFilter('all')}
-              count={installments.length}
-            />
-            <FilterButton 
-              label="Paid" 
-              active={filter === 'paid'} 
-              onPress={() => setFilter('paid')}
-              count={installments.filter(item => item.status === 'completed' || item.paid_at).length}
-            />
-            <FilterButton 
-              label="Pending" 
-              active={filter === 'pending'} 
-              onPress={() => setFilter('pending')}
-              count={installments.filter(item => item.status === 'pending' || !item.paid_at).length}
-            />
+          {/* ===== SIMPLIFIED STATS ===== */}
+          <View style={styles.statsCard}>
+            <View style={styles.statsRow}>
+              <StatBox 
+                icon="list-outline"
+                label="Total"
+                value={installments.length}
+                color="#3b82f6"
+              />
+              <StatBox 
+                icon="checkmark-circle"
+                label="Paid"
+                value={installments.filter(item => item.status === 'completed' || item.paid_at).length}
+                color="#10b981"
+              />
+              <StatBox 
+                icon="time-outline"
+                label="Pending"
+                value={installments.filter(item => item.status === 'pending' || !item.paid_at).length}
+                color="#f59e0b"
+              />
+            </View>
           </View>
 
-          {/* ===== INSTALLMENTS LIST ===== */}
-          <View style={styles.installmentsCard}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="list-outline" size={24} color="#3b82f6" />
-              <Text style={styles.cardTitle}>Payment Installments</Text>
-              <Text style={styles.installmentsCount}>
-                {filteredInstallments.length} of {installments.length}
+          {/* ===== SIMPLIFIED FILTERS ===== */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterTitle}>Filter by Status</Text>
+            <View style={styles.filterButtons}>
+              <TouchableOpacity
+                style={[styles.filterBtn, filter === 'all' && styles.filterBtnActive]}
+                onPress={() => setFilter('all')}
+              >
+                <Text style={[styles.filterBtnText, filter === 'all' && styles.filterBtnTextActive]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterBtn, filter === 'paid' && styles.filterBtnActive]}
+                onPress={() => setFilter('paid')}
+              >
+                <View style={styles.filterBtnContent}>
+                  <Ionicons name="checkmark-circle" size={16} color={filter === 'paid' ? '#10b981' : '#94a3b8'} />
+                  <Text style={[styles.filterBtnText, filter === 'paid' && styles.filterBtnTextActive]}>
+                    Paid
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.filterBtn, filter === 'pending' && styles.filterBtnActive]}
+                onPress={() => setFilter('pending')}
+              >
+                <View style={styles.filterBtnContent}>
+                  <Ionicons name="time-outline" size={16} color={filter === 'pending' ? '#f59e0b' : '#94a3b8'} />
+                  <Text style={[styles.filterBtnText, filter === 'pending' && styles.filterBtnTextActive]}>
+                    Pending
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ===== SIMPLIFIED INSTALLMENTS LIST ===== */}
+          <View style={styles.listCard}>
+            <View style={styles.listHeader}>
+              <Ionicons name="receipt-outline" size={20} color="#3b82f6" />
+              <Text style={styles.listTitle}>Payment Installments</Text>
+              <Text style={styles.listCount}>
+                {filteredInstallments.length}
               </Text>
             </View>
 
             {filteredInstallments.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="receipt-outline" size={64} color="#475569" />
+              <View style={styles.emptyState}>
+                <Ionicons name="receipt-outline" size={48} color="#475569" />
                 <Text style={styles.emptyTitle}>
                   {filter === 'all' ? 'No Payments Yet' : 
                    filter === 'paid' ? 'No Paid Installments' : 
                    'No Pending Installments'}
                 </Text>
                 <Text style={styles.emptyText}>
-                  {filter === 'all' ? 
-                    'Payment installments will appear here' :
-                    filter === 'paid' ?
-                    'No completed payments found' :
-                    'No pending payments found'
-                  }
+                  Payment installments will appear here once added.
                 </Text>
               </View>
             ) : (
-              <FlatList
-                data={filteredInstallments}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
-                renderItem={({ item, index }) => (
-                  <InstallmentItem 
-                    item={item} 
-                    index={index}
+              <View style={styles.installmentsList}>
+                {filteredInstallments.map((item, index) => (
+                  <InstallmentCard 
+                    key={item.id}
+                    item={item}
                     isLast={index === filteredInstallments.length - 1}
                   />
-                )}
-              />
+                ))}
+              </View>
             )}
           </View>
 
-          {/* ===== PAYMENT INFO CARD ===== */}
-          <View style={styles.infoCard}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="information-circle-outline" size={24} color="#f59e0b" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Payment Information</Text>
-              <Text style={styles.infoText}>
-                View all payment installments and track your payment progress. 
-                Completed payments are marked with a green checkmark.
-              </Text>
-            </View>
-          </View>
-
-          {/* ===== NEED HELP CARD ===== */}
-          <TouchableOpacity 
-            style={styles.helpCard}
-            onPress={() => navigation.navigate('Contact')}
-          >
-            <View style={styles.helpIcon}>
-              <Ionicons name="help-circle-outline" size={24} color="#3b82f6" />
-            </View>
-            <View style={styles.helpContent}>
-              <Text style={styles.helpTitle}>Need Help with Payments?</Text>
-              <Text style={styles.helpText}>
-                Contact our support team for payment-related queries
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#64748b" />
-          </TouchableOpacity>
+         
+          
+          {/* ===== BOTTOM SPACING ===== */}
+          <View style={styles.bottomSpacing} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -355,95 +327,59 @@ export default function Payments({ route, navigation }) {
 
 /* ===== REUSABLE COMPONENTS ===== */
 
-const StatItem = ({ label, value, icon, color }) => (
-  <View style={styles.statGridItem}>
+const StatBox = ({ icon, label, value, color }) => (
+  <View style={styles.statBox}>
     <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={18} color={color} />
+      <Ionicons name={icon} size={20} color={color} />
     </View>
-    <Text style={styles.statGridLabel}>{label}</Text>
-    <Text style={[styles.statGridValue, { color }]}>{value}</Text>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
 
-const FilterButton = ({ label, active, onPress, count }) => (
-  <TouchableOpacity
-    style={[styles.filterButton, active && styles.filterButtonActive]}
-    onPress={onPress}
-  >
-    <Text style={[styles.filterText, active && styles.filterTextActive]}>
-      {label}
-    </Text>
-    <View style={[styles.filterBadge, active && styles.filterBadgeActive]}>
-      <Text style={[styles.filterBadgeText, active && styles.filterBadgeTextActive]}>
-        {count}
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
-
-const InstallmentItem = ({ item, index, isLast }) => {
+const InstallmentCard = ({ item, isLast }) => {
   const isPaid = item.status === 'completed' || item.paid_at;
   const date = isPaid 
     ? new Date(item.paid_at).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
       })
     : new Date(item.due_date).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
       });
 
-  const getStatusText = () => {
-    if (isPaid) return 'Paid';
-    if (new Date(item.due_date) < new Date()) return 'Overdue';
-    return 'Pending';
+  const getStatus = () => {
+    if (isPaid) return { text: 'Paid', color: '#10b981' };
+    if (new Date(item.due_date) < new Date()) return { text: 'Overdue', color: '#ef4444' };
+    return { text: 'Pending', color: '#f59e0b' };
   };
 
-  const getStatusColor = () => {
-    if (isPaid) return '#10b981';
-    if (new Date(item.due_date) < new Date()) return '#ef4444';
-    return '#f59e0b';
-  };
+  const status = getStatus();
 
   return (
-    <View style={[styles.installmentItem, isLast && styles.installmentItemLast]}>
+    <View style={[styles.installmentCard, !isLast && styles.installmentBorder]}>
       <View style={styles.installmentLeft}>
         <View style={[
           styles.installmentIcon,
-          { backgroundColor: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }
+          { backgroundColor: `${status.color}15` }
         ]}>
           <Ionicons 
             name={isPaid ? "checkmark-circle" : "time-outline"} 
             size={20} 
-            color={isPaid ? '#10b981' : '#f59e0b'} 
+            color={status.color} 
           />
         </View>
-        <View style={styles.installmentInfo}>
+        <View style={styles.installmentDetails}>
           <Text style={styles.installmentAmount}>₹ {item.amount_paid || item.amount}</Text>
           <View style={styles.installmentMeta}>
             <Ionicons name="calendar-outline" size={12} color="#94a3b8" />
             <Text style={styles.installmentDate}>{date}</Text>
-            {item.reference_id && (
-              <>
-                <Text style={styles.metaSeparator}>•</Text>
-                <Text style={styles.installmentRef}>Ref: {item.reference_id}</Text>
-              </>
-            )}
           </View>
         </View>
       </View>
-      <View style={styles.installmentRight}>
-        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor()}15` }]}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
-          <Text style={[styles.statusText, { color: getStatusColor() }]}>
-            {getStatusText()}
-          </Text>
-        </View>
-        {isPaid && (
-          <Ionicons name="receipt-outline" size={18} color="#64748b" />
-        )}
+      <View style={[styles.statusTag, { backgroundColor: `${status.color}15` }]}>
+        <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
       </View>
     </View>
   );
@@ -491,118 +427,104 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
   },
-  overviewCard: {
+  
+  // Summary Card
+  summaryCard: {
     backgroundColor: '#1e293b',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
   },
-  overviewHeader: {
+  summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  overviewIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  summaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
   },
-  overviewContent: {
-    flex: 1,
-  },
-  overviewTitle: {
-    fontSize: 20,
+  summaryTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
-    letterSpacing: -0.3,
   },
-  overviewSubtitle: {
-    fontSize: 15,
+  summaryStatus: {
+    fontSize: 14,
     color: '#94a3b8',
     fontWeight: '500',
   },
   progressContainer: {
     marginBottom: 24,
   },
-  progressLabels: {
+  progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   progressLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#cbd5e1',
   },
   progressPercentage: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#10b981',
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: '#0f172a',
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#10b981',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  summaryGrid: {
+  amountsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statGridItem: {
-    flex: 1,
-    minWidth: '48%',
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
   },
-  statGridLabel: {
-    fontSize: 13,
+  amountItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  amountLabel: {
+    fontSize: 12,
     color: '#94a3b8',
     marginBottom: 4,
     fontWeight: '500',
   },
-  statGridValue: {
+  amountValue: {
     fontSize: 18,
     fontWeight: '800',
+    color: '#f8fafc',
   },
+  amountDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#334155',
+  },
+  
+  // Stats Card
   statsCard: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
@@ -614,137 +536,132 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  statItem: {
+  statBox: {
+    alignItems: 'center',
     flex: 1,
-    alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 8,
-    marginBottom: 4,
-    fontWeight: '500',
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
     color: '#f8fafc',
+    marginBottom: 4,
   },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#334155',
+  statLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '500',
   },
-  filterContainer: {
+  
+  // Filter Section
+  filterSection: {
+    marginBottom: 20,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f8fafc',
+    marginBottom: 12,
+  },
+  filterButtons: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
-    borderRadius: 14,
-    padding: 8,
-    marginBottom: 20,
+    borderRadius: 12,
+    padding: 6,
     borderWidth: 1,
     borderColor: '#2d3748',
   },
-  filterButton: {
+  filterBtn: {
     flex: 1,
-    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
   },
-  filterButtonActive: {
+  filterBtnActive: {
     backgroundColor: '#0f172a',
   },
-  filterText: {
+  filterBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterBtnText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#94a3b8',
-    marginRight: 6,
   },
-  filterTextActive: {
-    color: '#3b82f6',
+  filterBtnTextActive: {
+    color: '#f8fafc',
   },
-  filterBadge: {
-    backgroundColor: '#334155',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  filterBadgeActive: {
-    backgroundColor: '#3b82f6',
-  },
-  filterBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#cbd5e1',
-  },
-  filterBadgeTextActive: {
-    color: '#ffffff',
-  },
-  installmentsCard: {
+  
+  // List Card
+  listCard: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
   },
-  cardHeader: {
+  listHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  cardTitle: {
-    fontSize: 20,
+  listTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginLeft: 12,
     flex: 1,
-    letterSpacing: -0.3,
   },
-  installmentsCount: {
+  listCount: {
     fontSize: 14,
-    color: '#94a3b8',
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  emptyContainer: {
+  emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
-    marginTop: 20,
+    marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#94a3b8',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  installmentItem: {
+  installmentsList: {
+    gap: 12,
+  },
+  installmentCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 16,
+  },
+  installmentBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
-  },
-  installmentItemLast: {
-    borderBottomWidth: 0,
   },
   installmentLeft: {
     flexDirection: 'row',
@@ -759,11 +676,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  installmentInfo: {
+  installmentDetails: {
     flex: 1,
   },
   installmentAmount: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 6,
@@ -771,7 +688,6 @@ const styles = StyleSheet.create({
   installmentMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
   },
   installmentDate: {
     fontSize: 13,
@@ -779,80 +695,35 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: '500',
   },
-  metaSeparator: {
-    color: '#64748b',
-    marginHorizontal: 8,
-  },
-  installmentRef: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  installmentRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
+  statusTag: {
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    borderRadius: 16,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
+  
+  // Support Section
+  supportContainer: {
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#2d3748',
-    alignItems: 'center',
   },
-  infoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    lineHeight: 20,
-  },
-  helpCard: {
+  supportCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1e293b',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  helpIcon: {
+  supportIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -861,17 +732,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  helpContent: {
+  supportContent: {
     flex: 1,
   },
-  helpTitle: {
-    fontSize: 16,
+  supportTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#f8fafc',
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
-  helpText: {
+  supportText: {
     fontSize: 14,
     color: '#94a3b8',
+  },
+  
+  // Bottom Spacing
+  bottomSpacing: {
+    height: 80,
   },
 });

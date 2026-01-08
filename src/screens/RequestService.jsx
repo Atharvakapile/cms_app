@@ -27,6 +27,7 @@ export default function RequestService() {
   const [contact, setContact] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const [isFocused, setIsFocused] = useState({
     name: false,
     contact: false,
@@ -37,6 +38,7 @@ export default function RequestService() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
+  const pickerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -52,6 +54,28 @@ export default function RequestService() {
       }),
     ]).start();
   }, []);
+
+  const togglePicker = () => {
+    if (showPicker) {
+      Animated.timing(pickerOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(() => setShowPicker(false));
+    } else {
+      setShowPicker(true);
+      Animated.timing(pickerOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const handleTypeSelect = (value) => {
+    setType(value);
+    togglePicker();
+  };
 
   const handleFocus = (field) => {
     setIsFocused({ ...isFocused, [field]: true });
@@ -144,6 +168,17 @@ export default function RequestService() {
     }
   };
 
+  const getTypeLabel = () => {
+    switch (type) {
+      case 'service':
+        return 'Request New Service';
+      case 'suggestion':
+        return 'Suggestion / Query';
+      default:
+        return 'Select Type';
+    }
+  };
+
   const getTypeTitle = () => {
     return type === 'service' ? 'Request New Service' : 'Make a Suggestion';
   };
@@ -152,6 +187,10 @@ export default function RequestService() {
     return type === 'service'
       ? 'Request a new service or modification to existing services'
       : 'Share your suggestions or queries for improvement';
+  };
+
+  const getTypeColor = () => {
+    return type === 'service' ? '#3b82f6' : '#8b5cf6';
   };
 
   return (
@@ -168,7 +207,10 @@ export default function RequestService() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <TouchableWithoutFeedback onPress={() => {
+          Keyboard.dismiss();
+          if (showPicker) togglePicker();
+        }}>
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
@@ -184,8 +226,8 @@ export default function RequestService() {
             >
               {/* ===== INFO CARD ===== */}
               <View style={styles.infoCard}>
-                <View style={styles.infoIcon}>
-                  <Ionicons name={getTypeIcon()} size={32} color="#3b82f6" />
+                <View style={[styles.infoIcon, { backgroundColor: `${getTypeColor()}15` }]}>
+                  <Ionicons name={getTypeIcon()} size={32} color={getTypeColor()} />
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoTitle}>{getTypeTitle()}</Text>
@@ -198,33 +240,77 @@ export default function RequestService() {
                 {/* ===== TYPE SELECTION ===== */}
                 <View style={styles.formSection}>
                   <View style={styles.sectionHeader}>
-                    <Ionicons name="layers-outline" size={20} color="#3b82f6" />
+                    <Ionicons name="layers-outline" size={20} color={getTypeColor()} />
                     <Text style={styles.sectionTitle}>Request Type</Text>
                   </View>
-                  <View style={styles.pickerContainer}>
-                    <View style={styles.pickerIcon}>
-                      <Ionicons name={getTypeIcon()} size={18} color="#64748b" />
+                  
+                  {/* Custom Dropdown Button */}
+                  <TouchableOpacity 
+                    style={styles.dropdownButton}
+                    onPress={togglePicker}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.dropdownLeft}>
+                      <View style={[styles.typeIcon, { backgroundColor: `${getTypeColor()}15` }]}>
+                        <Ionicons name={getTypeIcon()} size={18} color={getTypeColor()} />
+                      </View>
+                      <Text style={styles.dropdownText}>{getTypeLabel()}</Text>
                     </View>
-                    <View style={styles.pickerWrapper}>
-                      <Picker
-                        selectedValue={type}
-                        onValueChange={(value) => setType(value)}
-                        style={styles.picker}
-                        dropdownIconColor="#64748b"
+                    <Ionicons 
+                      name={showPicker ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color="#64748b" 
+                    />
+                  </TouchableOpacity>
+
+                  {/* Custom Picker Modal */}
+                  {showPicker && (
+                    <Animated.View style={[styles.pickerModal, { opacity: pickerOpacity }]}>
+                      <TouchableOpacity 
+                        style={styles.pickerOption}
+                        onPress={() => handleTypeSelect('service')}
+                        activeOpacity={0.7}
                       >
-                        <Picker.Item
-                          label="Request New Service"
-                          value="service"
-                          color="#000000ff"
-                        />
-                        <Picker.Item
-                          label="Suggestion / Query"
-                          value="suggestion"
-                          color="#000000ff"
-                        />
-                      </Picker>
-                    </View>
-                  </View>
+                        <View style={styles.optionLeft}>
+                          <View style={[styles.optionIcon, { backgroundColor: '#3b82f615' }]}>
+                            <Ionicons name="construct-outline" size={18} color="#3b82f6" />
+                          </View>
+                          <View>
+                            <Text style={styles.optionTitle}>Request New Service</Text>
+                            <Text style={styles.optionSubtitle}>New service or modification</Text>
+                          </View>
+                        </View>
+                        {type === 'service' && (
+                          <View style={styles.selectedIndicator}>
+                            <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      
+                      <View style={styles.pickerDivider} />
+                      
+                      <TouchableOpacity 
+                        style={styles.pickerOption}
+                        onPress={() => handleTypeSelect('suggestion')}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.optionLeft}>
+                          <View style={[styles.optionIcon, { backgroundColor: '#8b5cf615' }]}>
+                            <Ionicons name="bulb-outline" size={18} color="#8b5cf6" />
+                          </View>
+                          <View>
+                            <Text style={styles.optionTitle}>Suggestion / Query</Text>
+                            <Text style={styles.optionSubtitle}>Share suggestions or queries</Text>
+                          </View>
+                        </View>
+                        {type === 'suggestion' && (
+                          <View style={styles.selectedIndicator}>
+                            <Ionicons name="checkmark-circle" size={20} color="#8b5cf6" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    </Animated.View>
+                  )}
                 </View>
 
                 {/* ===== NAME FIELD ===== */}
@@ -300,6 +386,7 @@ export default function RequestService() {
                       style={styles.textArea}
                       multiline
                       textAlignVertical="top"
+                      maxLength={500}
                     />
                   </View>
                   <View style={styles.charCounter}>
@@ -350,6 +437,11 @@ export default function RequestService() {
                   </View>
                 </View>
               </View>
+
+              
+              
+              {/* ===== BOTTOM SPACING ===== */}
+              <View style={styles.bottomSpacing} />
             </Animated.View>
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -391,7 +483,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     width: '100%',
@@ -417,7 +509,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 20,
@@ -443,6 +534,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e293b',
     borderRadius: 20,
     padding: 24,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2d3748',
     shadowColor: '#000',
@@ -465,29 +557,93 @@ const styles = StyleSheet.create({
     color: '#e2e8f0',
     marginLeft: 12,
   },
-  pickerContainer: {
+  
+  // Custom Dropdown Styles
+  dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#0f172a',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#2d3748',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+  },
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  typeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  dropdownText: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  
+  // Custom Picker Modal
+  pickerModal: {
+    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#2d3748',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
     overflow: 'hidden',
   },
-  pickerIcon: {
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderRightWidth: 1,
-    borderRightColor: '#2d3748',
+    backgroundColor: '#0f172a',
   },
-  pickerWrapper: {
+  optionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  picker: {
+  optionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  optionTitle: {
     color: '#f8fafc',
     fontSize: 15,
-    paddingHorizontal: 12,
+    fontWeight: '600',
+    marginBottom: 4,
   },
+  optionSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+  },
+  selectedIndicator: {
+    marginLeft: 12,
+  },
+  pickerDivider: {
+    height: 1,
+    backgroundColor: '#2d3748',
+  },
+  
+  // Input Styles
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -557,6 +713,8 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontWeight: '500',
   },
+  
+  // Submit Button
   submitButton: {
     backgroundColor: '#3b82f6',
     borderRadius: 14,
@@ -585,6 +743,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.2,
   },
+  
+  // Tips Card
   tipsCard: {
     flexDirection: 'row',
     backgroundColor: 'rgba(245, 158, 11, 0.05)',
@@ -615,5 +775,52 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94a3b8',
     lineHeight: 20,
+  },
+  
+  // Support Section
+  supportContainer: {
+    marginBottom: 20,
+  },
+  supportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#2d3748',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  supportIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  supportContent: {
+    flex: 1,
+  },
+  supportTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f8fafc',
+    marginBottom: 4,
+    letterSpacing: -0.2,
+  },
+  supportText: {
+    fontSize: 14,
+    color: '#94a3b8',
+  },
+  
+  // Bottom spacing for safe area
+  bottomSpacing: {
+    height: 80,
   },
 });
